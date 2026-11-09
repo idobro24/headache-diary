@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#22271F">
   <title>Дневник головной боли</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <main id="app">
@@ -19,7 +19,10 @@
 
     <section class="screen" id="screen-help">
       <div class="help">
-        <p class="phrase" id="phrase">Эта боль временная. Она пройдёт.</p>
+        <div class="phrase" id="phrase">
+          <p class="phrase-text visible" id="phrase-a">Эта боль временная. Она пройдёт.</p>
+          <p class="phrase-text" id="phrase-b" aria-hidden="true"></p>
+        </div>
 
         <div class="breath">
           <div class="breath-circle">
@@ -121,7 +124,7 @@
 
   <script src="storage.js?v=5"></script>
   <script src="logger.js?v=5"></script>
-  <script src="help.js?v=6"></script>
+  <script src="help.js?v=7"></script>
   <script src="app.js?v=5"></script>
 </body>
 </html>

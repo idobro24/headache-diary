@@ -76,13 +76,12 @@ function renderCalendar(all) {
     viewYear > now.getFullYear() ||
     (viewYear === now.getFullYear() && viewMonth >= now.getMonth());
 
-  // Уровень боли по дням: лёгкая или сильная (берём самую сильную за день)
+  // Самая сильная боль за каждый день: 1–4, или 0, если сила не указана
   const levels = {};
   all.forEach(ep => {
-    const strong = ep.intensity >= 3;
+    const level = ep.intensity || 0;
     episodeDays(ep).forEach(k => {
-      if (strong) levels[k] = 'strong';
-      else if (!levels[k]) levels[k] = 'light';
+      if (!(k in levels) || level > levels[k]) levels[k] = level;
     });
   });
 
@@ -112,7 +111,7 @@ function renderCalendar(all) {
 
     let state;
     if (date > now) state = 'future';
-    else if (levels[key]) state = levels[key];
+    else if (key in levels) state = 'level-' + levels[key];
     else if (date < firstUse) state = 'none';
     else state = 'free';
     btn.classList.add(state);

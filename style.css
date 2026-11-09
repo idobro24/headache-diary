@@ -643,6 +643,14 @@ body::after {
   pointer-events: none;
 }
 
+/* iOS 26, приложение с экрана «Домой»: панель отсчитываем от верха экрана (см. app.js) */
+.ios-standalone .tabbar {
+  top: calc(var(--screen-h) - var(--tabbar-height) - env(safe-area-inset-bottom));
+  bottom: auto;
+}
+.ios-standalone .screen { min-height: var(--screen-h); }
+.ios-standalone .sheet { bottom: auto; height: var(--screen-h); }
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

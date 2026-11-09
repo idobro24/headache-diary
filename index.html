@@ -2,24 +2,43 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#22271F">
   <title>Дневник головной боли</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(180deg, #363C2B, #22271F);
-      color: #D2CFC2;
-      font-family: system-ui, sans-serif;
-      font-size: 22px;
-      text-align: center;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <p>Скоро здесь будет дневник 🌿</p>
+  <main id="app">
+    <section class="screen active" id="screen-home">
+      <h1 class="title">Как вы сегодня?</h1>
+      <p class="subtitle" id="home-status">Хорошего дня 🌿</p>
+      <button class="sos-button" id="btn-start">Началось</button>
+      <p class="hint">Нажмите, когда начнётся боль</p>
+    </section>
+
+    <section class="screen" id="screen-help">
+      <h1 class="title">Помощь</h1>
+      <p class="subtitle">Здесь будут дыхание и поддержка</p>
+    </section>
+
+    <section class="screen" id="screen-history">
+      <h1 class="title">История</h1>
+      <p class="subtitle">Здесь будут календарь и статистика</p>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-screen="home">
+      <span class="tab-icon">🏠</span><span>Главная</span>
+    </button>
+    <button class="tab" data-screen="help">
+      <span class="tab-icon">🌿</span><span>Помощь</span>
+    </button>
+    <button class="tab" data-screen="history">
+      <span class="tab-icon">📅</span><span>История</span>
+    </button>
+  </nav>
+
+  <script src="app.js"></script>
 </body>
 </html>

@@ -24,41 +24,23 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) renderHome();
 });
 
-// iOS: при запуске с экрана «Домой» Safari иногда сначала неверно считает высоту экрана,
-// и нижняя панель «подпрыгивает». Переключение вкладки это исправляет, потому что
-// экран на миг скрывается и показывается снова. Делаем то же самое автоматически.
-function nextFrame() {
-  return new Promise(resolve => requestAnimationFrame(() => resolve()));
+// iOS 26 в приложении с экрана «Домой»: если страница не прокручивается (как «Главная»),
+// Safari считает экран ниже, чем он есть, и всё, что прижато к низу, поднимается.
+// Отсчёт от верха экрана при этом верный, поэтому ставим панель от верха,
+// а высоту берём из реального размера экрана.
+if (window.navigator.standalone === true) {
+  document.documentElement.classList.add('ios-standalone');
+  const setScreenHeight = () => {
+    const landscape = window.matchMedia('(orientation: landscape)').matches;
+    const h = landscape
+      ? Math.min(screen.width, screen.height)
+      : Math.max(screen.width, screen.height);
+    document.documentElement.style.setProperty('--screen-h', h + 'px');
+  };
+  setScreenHeight();
+  window.addEventListener('resize', setScreenHeight);
+  window.addEventListener('orientationchange', () => setTimeout(setScreenHeight, 300));
 }
-
-// Экран скрывается на два кадра и показывается снова. Важно, чтобы браузер успел
-// именно отрисовать скрытое состояние: iOS пересчитывает высоту экрана при отрисовке,
-// поэтому мгновенное «скрыть и показать» в прошлой версии не помогало.
-let refreshing = false;
-async function refreshLayout() {
-  if (refreshing || document.hidden) return;
-  const active = document.querySelector('.screen.active');
-  if (!active) return;
-  refreshing = true;
-  const top = window.scrollY;
-  active.classList.remove('active');
-  await nextFrame();
-  await nextFrame();
-  // если за эти доли секунды переключили вкладку, ничего не трогаем
-  if (!document.querySelector('.screen.active')) {
-    active.classList.add('active');
-    window.scrollTo(0, top);
-  }
-  refreshing = false;
-}
-
-window.addEventListener('load', () => {
-  [300, 1200].forEach(ms => setTimeout(refreshLayout, ms));
-});
-window.addEventListener('pageshow', () => setTimeout(refreshLayout, 300));
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) setTimeout(refreshLayout, 150);
-});
 
 // Офлайн-режим: регистрируем помощника, который сохраняет файлы приложения
 if ('serviceWorker' in navigator) {

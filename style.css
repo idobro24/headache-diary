@@ -6,6 +6,8 @@
   --accent: #8E9A78;
   --surface: rgba(210, 207, 194, 0.06);
   --border: rgba(210, 207, 194, 0.12);
+  --border-strong: rgba(210, 207, 194, 0.3);
+  --on-accent: #1E2219;
   --tabbar-height: 64px;
 }
 
@@ -233,7 +235,7 @@ textarea { width: 100%; resize: vertical; }
   border-radius: 16px;
   border: none;
   background: var(--accent);
-  color: #1E2219;
+  color: var(--on-accent);
   font-size: 18px;
   font-weight: 500;
   font-family: inherit;
@@ -558,6 +560,8 @@ body.dim {
   --accent: #56604A;
   --surface: rgba(140, 137, 127, 0.05);
   --border: rgba(140, 137, 127, 0.1);
+  --border-strong: rgba(140, 137, 127, 0.22);
+  --on-accent: #0A0B09;
 }
 body.dim .sos-button { background: rgba(86, 96, 74, 0.2); border-color: #4A5340; }
 body.dim .chip.selected,
@@ -567,7 +571,7 @@ body.dim .breath-ring {
   border-color: rgba(86, 96, 74, 0.5);
 }
 body.dim .tabbar { background: rgba(10, 11, 9, 0.95); }
-body.dim .primary-button { color: #0A0B09; }
+body.dim .primary-button { color: var(--on-accent); }
 body.dim .red-flags { border-color: rgba(150, 128, 90, 0.35); background: rgba(150, 128, 90, 0.05); }
 body.dim .call-button { background: rgba(150, 128, 90, 0.15); }
 /* Эмодзи и цвета календаря тоже приглушаем */
@@ -576,6 +580,68 @@ body.dim .emoji,
 body.dim .calendar,
 body.dim .dot { filter: grayscale(0.6) brightness(0.6); }
 .toggle-next { margin-top: 14px; }
+
+/* ===== Свои галочки и ползунок вместо ярких системных ===== */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  margin: 0;
+  border-radius: 7px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  cursor: pointer;
+}
+input[type="checkbox"]::before {
+  content: "";
+  width: 10px;
+  height: 5px;
+  border-left: 2px solid var(--on-accent);
+  border-bottom: 2px solid var(--on-accent);
+  transform: translateY(-1px) rotate(-45deg) scale(0);
+  transition: transform 0.15s ease;
+}
+input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"]:checked::before { transform: translateY(-1px) rotate(-45deg) scale(1); }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 25%), var(--border-strong) var(--fill, 25%));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border: none;
+  border-radius: 50%;
+  background: var(--text);
+}
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--border-strong); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border: none; border-radius: 50%; background: var(--text); }
+
+/* Полоса под часами: текст не уезжает под время и батарею при прокрутке */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: var(--bg-top);
+  z-index: 20;
+  pointer-events: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

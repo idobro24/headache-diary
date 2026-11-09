@@ -27,23 +27,37 @@ document.addEventListener('visibilitychange', () => {
 // iOS: при запуске с экрана «Домой» Safari иногда сначала неверно считает высоту экрана,
 // и нижняя панель «подпрыгивает». Переключение вкладки это исправляет, потому что
 // экран на миг скрывается и показывается снова. Делаем то же самое автоматически.
-function refreshLayout() {
-  const active = document.querySelector('.screen.active');
-  if (!active) return;
-  const top = window.scrollY;
-  active.classList.remove('active');
-  void active.offsetHeight; // принудительный пересчёт раскладки
-  active.classList.add('active');
-  window.scrollTo(0, top);
+function nextFrame() {
+  return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
-// Размеры экрана в iOS «устаканиваются» не сразу, поэтому повторяем несколько раз
+// Экран скрывается на два кадра и показывается снова. Важно, чтобы браузер успел
+// именно отрисовать скрытое состояние: iOS пересчитывает высоту экрана при отрисовке,
+// поэтому мгновенное «скрыть и показать» в прошлой версии не помогало.
+let refreshing = false;
+async function refreshLayout() {
+  if (refreshing || document.hidden) return;
+  const active = document.querySelector('.screen.active');
+  if (!active) return;
+  refreshing = true;
+  const top = window.scrollY;
+  active.classList.remove('active');
+  await nextFrame();
+  await nextFrame();
+  // если за эти доли секунды переключили вкладку, ничего не трогаем
+  if (!document.querySelector('.screen.active')) {
+    active.classList.add('active');
+    window.scrollTo(0, top);
+  }
+  refreshing = false;
+}
+
 window.addEventListener('load', () => {
-  [50, 300, 800, 1500, 3000].forEach(ms => setTimeout(refreshLayout, ms));
+  [300, 1200].forEach(ms => setTimeout(refreshLayout, ms));
 });
-window.addEventListener('pageshow', () => setTimeout(refreshLayout, 50));
+window.addEventListener('pageshow', () => setTimeout(refreshLayout, 300));
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) setTimeout(refreshLayout, 100);
+  if (!document.hidden) setTimeout(refreshLayout, 150);
 });
 
 // Офлайн-режим: регистрируем помощника, который сохраняет файлы приложения

@@ -41,7 +41,24 @@ body::before {
            calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 24px);
 }
 .screen.active { display: flex; }
-#screen-home { justify-content: center; }
+#screen-home { justify-content: space-between; position: relative; }
+.home-center { display: flex; flex-direction: column; align-items: center; }
+
+/* Название приложения и подпись автора на главном экране */
+.wordmark {
+  font-family: ui-serif, "New York", Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  opacity: 0.85;
+}
+.credit {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
 
 .title { font-size: 28px; font-weight: 300; }
 .subtitle { font-size: 17px; color: var(--text-muted); margin-top: 8px; }
@@ -498,6 +515,38 @@ label.ghost-button { cursor: pointer; }
   .report th, .report td { border-bottom: 1px solid #bbb; }
   .table-wrap { overflow: visible; }
 }
+
+/* ===== Влияние на день и сообщение близким ===== */
+.small-label { margin: 14px 0 8px; font-size: 14px; color: var(--text-muted); }
+.end-impact { margin-top: 28px; }
+.end-impact > p { margin-bottom: 10px; }
+.end-impact .chips { justify-content: center; }
+.message-button { width: auto; margin-top: 20px; padding: 12px 24px; }
+#btn-message-help { margin-top: 24px; }
+#msg-text { margin-top: 16px; line-height: 1.5; }
+#msg-reset { display: block; margin: 10px auto 0; }
+
+/* ===== Как пользоваться ===== */
+.info-button {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 32px);
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: ui-serif, "New York", Georgia, serif;
+  font-size: 18px;
+  font-style: italic;
+  cursor: pointer;
+}
+.info p { font-size: 16px; line-height: 1.55; }
+.info .sheet-label { font-size: 22px; }
+.info .section-title { margin-top: 24px; }
+a.primary-button { text-align: center; text-decoration: none; }
+.info .info-version { margin-top: 16px; text-align: center; font-size: 12px; color: var(--text-muted); opacity: 0.7; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

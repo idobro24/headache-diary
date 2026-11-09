@@ -16,6 +16,10 @@ const OPTIONS = {
 
 const HELPED = [['yes', 'Помогло'], ['partly', 'Частично'], ['no', 'Не помогло']];
 
+// Как приступ повлиял на день (для врача это так же важно, как частота)
+const IMPACT = [['none', 'Почти не мешал'], ['reduced', 'Дела через силу'], ['missed', 'Пришлось отменить дела']];
+const IMPACT_AREAS = ['Работа или учёба', 'Домашние дела', 'Встречи и отдых'];
+
 let current = null;          // запись, которую сейчас редактируем
 let openedFromStart = false; // открыт ли логгер кнопкой «Началось»
 
@@ -142,6 +146,45 @@ function renderMeds() {
   });
 }
 
+// Вопрос о влиянии на день: в логгере (prefix 'lg') и при завершении приступа (prefix 'end')
+function renderImpact(ep, prefix) {
+  if (!Array.isArray(ep.impactAreas)) ep.impactAreas = [];
+  const box = $(prefix + '-impact');
+  box.innerHTML = '';
+  IMPACT.forEach(([val, label]) => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = label;
+    chip.classList.toggle('selected', ep.impact === val);
+    chip.addEventListener('click', () => {
+      ep.impact = ep.impact === val ? null : val;
+      if (ep.impact !== 'reduced' && ep.impact !== 'missed') ep.impactAreas = [];
+      Store.upsert(ep);
+      renderImpact(ep, prefix);
+    });
+    box.appendChild(chip);
+  });
+
+  const showAreas = ep.impact === 'reduced' || ep.impact === 'missed';
+  $(prefix + '-areas-wrap').hidden = !showAreas;
+  const areas = $(prefix + '-areas');
+  areas.innerHTML = '';
+  if (!showAreas) return;
+  IMPACT_AREAS.forEach(area => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = area;
+    chip.classList.toggle('selected', ep.impactAreas.includes(area));
+    chip.addEventListener('click', () => {
+      const i = ep.impactAreas.indexOf(area);
+      if (i >= 0) ep.impactAreas.splice(i, 1); else ep.impactAreas.push(area);
+      chip.classList.toggle('selected');
+      Store.upsert(ep);
+    });
+    areas.appendChild(chip);
+  });
+}
+
 function fillMedList() {
   const names = [...Store.recentMeds(), ...OPTIONS.meds]
     .filter((n, i, arr) => arr.indexOf(n) === i);
@@ -188,6 +231,9 @@ function openLogger(ep, fromStart) {
     $('lg-start-dt').value = toLocalInput(ep.start);
     $('lg-end-dt').value = toLocalInput(ep.end);
   }
+
+  $('lg-impact-section').hidden = isActive;
+  if (!isActive) renderImpact(ep, 'lg');
 
   $('lg-note').value = ep.note;
   renderIntensity();
@@ -248,6 +294,7 @@ function openEndSheet() {
     block.append(q, row);
     box.appendChild(block);
   });
+  renderImpact(ep, 'end');
   $('end-sheet').hidden = false;
 }
 
@@ -262,12 +309,14 @@ function renderHome() {
     $('btn-start').textContent = 'Прошло';
     $('home-hint').textContent = 'Нажмите, когда станет легче';
     $('btn-edit').hidden = false;
+    $('btn-message-home').hidden = false;
     return;
   }
   $('home-title').textContent = 'Как вы сегодня?';
   $('btn-start').textContent = 'Началось';
   $('home-hint').textContent = 'Нажмите, когда начнётся боль';
   $('btn-edit').hidden = true;
+  $('btn-message-home').hidden = true;
 
   const last = Store.lastEnded();
   if (!last) {

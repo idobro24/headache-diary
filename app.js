@@ -6,6 +6,7 @@ function showScreen(name) {
   screens.forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
   tabs.forEach(t => t.classList.toggle('active', t.dataset.screen === name));
   window.scrollTo(0, 0);
+  if (name === 'help') helpShown(); else helpHidden();
 }
 
 tabs.forEach(tab => {

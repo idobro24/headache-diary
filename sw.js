@@ -1,261 +1,62 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#22271F">
-  <title>Тише — дневник головной боли</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png">
-  <link rel="apple-touch-icon" href="icon-180.png">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Тише">
-  <link rel="stylesheet" href="style.css?v=16">
-</head>
-<body>
-  <main id="app">
-    <section class="screen active" id="screen-home">
-      <p class="wordmark">Тише</p>
-      <button class="info-button" id="btn-info" aria-label="Как пользоваться приложением">i</button>
-      <div class="home-center">
-        <h1 class="title" id="home-title">Как вы сегодня?</h1>
-        <p class="subtitle" id="home-status">Хорошего дня 🌿</p>
-        <button class="sos-button" id="btn-start">Началось</button>
-        <p class="hint" id="home-hint">Нажмите, когда начнётся боль</p>
-        <button class="link-button" id="btn-edit" hidden>Дополнить запись</button>
-        <button class="ghost-button message-button" id="btn-message-home" hidden>Сообщить близким</button>
-      </div>
-      <p class="credit">created by Irina Dobroslavskaya</p>
-    </section>
+// Офлайн-режим: приложение сохраняет свои файлы и работает без интернета
+const CACHE = 'hd-v16';
+const FILES = [
+  './',
+  'index.html',
+  'style.css',
+  'storage.js',
+  'logger.js',
+  'help.js',
+  'history.js',
+  'report.js',
+  'message.js',
+  'info.js',
+  'app.js',
+  'manifest.json',
+  'icon-180.png',
+  'icon-192.png',
+  'icon-512.png'
+];
 
-    <section class="screen" id="screen-help">
-      <div class="help">
-        <p class="phrase" id="phrase">Эта боль временная. Она пройдёт.</p>
+// Установка: скачиваем свежие копии всех файлов
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(FILES.map(f => new Request(f, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
+});
 
-        <div class="breath">
-          <div class="breath-circle">
-            <div class="breath-ring" id="breath-ring"></div>
-            <span id="breath-label">Дыхание</span>
-            <span id="breath-count">4 / 6</span>
-          </div>
-          <button class="ghost-button" id="breath-toggle">Начать дыхание</button>
-        </div>
+// Активация: удаляем копии старых версий
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
 
-        <h2 class="section-title">Звуки</h2>
-        <div class="chips" id="sounds"></div>
-        <label class="volume">Громкость
-          <input type="range" id="volume" min="0" max="1" step="0.05" value="0.25">
-        </label>
+// Сначала пробуем сеть, чтобы всегда была свежая версия.
+// Нет сети или она отвечает дольше 3 секунд — берём сохранённую копию.
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
 
-        <h2 class="section-title">Что может помочь</h2>
-        <div class="checklist" id="checklist"></div>
+  event.respondWith((async () => {
+    const cached = await caches.match(req, { ignoreSearch: true });
 
-        <button class="ghost-button" id="btn-message-help">Сообщить близким</button>
+    const network = fetch(req, { cache: 'no-cache' }).then(res => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(cache => cache.put(req, copy));
+      }
+      return res;
+    });
 
-        <details class="red-flags">
-          <summary>Когда нужна срочная помощь</summary>
-          <ul>
-            <li>Внезапная сильнейшая боль, достигшая пика за секунды или минуту</li>
-            <li>Слабость или онемение в руке или ноге, перекос лица, нарушение речи или зрения</li>
-            <li>Высокая температура вместе с напряжением мышц шеи</li>
-            <li>Боль после удара или травмы головы</li>
-            <li>Спутанность сознания, сильная сонливость, судороги</li>
-            <li>Боль, совсем не похожая на ваши обычные приступы</li>
-          </ul>
-          <a class="call-button" href="tel:103">Позвонить в скорую: 103</a>
-        </details>
-
-        <label class="toggle-row"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 16</p>
-      </div>
-    </section>
-
-    <section class="screen" id="screen-history">
-      <div class="history">
-        <div class="month-nav">
-          <button class="nav-button" id="month-prev" aria-label="Предыдущий месяц">‹</button>
-          <h1 class="month-title" id="month-title"></h1>
-          <button class="nav-button" id="month-next" aria-label="Следующий месяц">›</button>
-        </div>
-        <div class="calendar" id="calendar"></div>
-        <div class="legend">
-          <span><i class="dot free"></i>Без боли</span>
-          <span><i class="dot level-1"></i>Лёгкая</span>
-          <span><i class="dot level-2"></i>Умеренная</span>
-          <span><i class="dot level-3"></i>Сильная</span>
-          <span><i class="dot level-4"></i>Невыносимая</span>
-          <span><i class="dot level-0"></i>Сила не указана</span>
-        </div>
-
-        <div class="list-head">
-          <h2 class="section-title" id="list-title">Приступы за месяц</h2>
-          <button class="link-inline" id="show-month" hidden>Весь месяц</button>
-        </div>
-        <div id="episode-list"></div>
-        <button class="ghost-button" id="btn-add-past">Добавить прошлый приступ</button>
-
-        <h2 class="section-title">Статистика месяца</h2>
-        <div id="stats"></div>
-
-        <h2 class="section-title">Данные</h2>
-        <div class="data-actions">
-          <button class="ghost-button" id="btn-report">Отчёт для врача</button>
-          <button class="ghost-button" id="btn-backup">Сохранить резервную копию</button>
-          <label class="ghost-button" for="restore-file">Восстановить из копии</label>
-          <input class="file-input" type="file" id="restore-file" accept=".json,application/json">
-          <p class="hint-small" id="backup-status"></p>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <nav class="tabbar">
-    <button class="tab active" data-screen="home">
-      <span class="tab-icon">🏠</span><span>Главная</span>
-    </button>
-    <button class="tab" data-screen="help">
-      <span class="tab-icon">🌿</span><span>Помощь</span>
-    </button>
-    <button class="tab" data-screen="history">
-      <span class="tab-icon">📅</span><span>История</span>
-    </button>
-  </nav>
-
-  <!-- Логгер приступа -->
-  <div class="sheet" id="logger" hidden>
-    <div class="sheet-content">
-      <p class="sheet-label" id="lg-title">Приступ записан 🌿</p>
-      <label class="time-row" id="lg-time-row">Начало: <input type="time" id="lg-time"></label>
-      <div class="range-rows" id="lg-range-row" hidden>
-        <label class="range-row">Начало <input type="datetime-local" id="lg-start-dt"></label>
-        <label class="range-row">Конец <input type="datetime-local" id="lg-end-dt"></label>
-      </div>
-
-      <h2 class="section-title">Насколько сильно?</h2>
-      <div class="intensity" id="lg-intensity"></div>
-
-      <h2 class="section-title">Как и где болит</h2>
-      <div class="chips" id="lg-tags"></div>
-
-      <h2 class="section-title">Симптомы</h2>
-      <div class="chips" id="lg-symptoms"></div>
-
-      <h2 class="section-title">Что могло спровоцировать</h2>
-      <div class="chips" id="lg-triggers"></div>
-
-      <h2 class="section-title">Лекарство</h2>
-      <div class="med-row">
-        <input id="lg-med-name" list="med-list" placeholder="Название" autocomplete="off">
-        <input id="lg-med-dose" placeholder="Доза">
-        <button class="small-button" id="lg-med-add" aria-label="Добавить лекарство">+</button>
-      </div>
-      <datalist id="med-list"></datalist>
-      <ul class="med-list" id="lg-meds"></ul>
-
-      <div id="lg-impact-section" hidden>
-        <h2 class="section-title">Как приступ повлиял на день?</h2>
-        <div class="chips" id="lg-impact"></div>
-        <div id="lg-areas-wrap" hidden>
-          <p class="small-label">Что пострадало</p>
-          <div class="chips" id="lg-areas"></div>
-        </div>
-      </div>
-
-      <h2 class="section-title">Заметка</h2>
-      <textarea id="lg-note" rows="3" placeholder="Необязательно"></textarea>
-
-      <button class="primary-button" id="lg-done">Готово</button>
-      <button class="ghost-button danger" id="lg-delete">Удалить запись</button>
-    </div>
-  </div>
-
-  <!-- Завершение приступа -->
-  <div class="sheet" id="end-sheet" hidden>
-    <div class="sheet-content">
-      <h2 class="title">Приступ закончился?</h2>
-      <p class="subtitle" id="end-duration"></p>
-      <div id="end-meds"></div>
-      <div class="end-impact">
-        <p>Как приступ повлиял на день?</p>
-        <div class="chips" id="end-impact"></div>
-        <div id="end-areas-wrap" hidden>
-          <p class="small-label">Что пострадало</p>
-          <div class="chips" id="end-areas"></div>
-        </div>
-      </div>
-      <button class="primary-button" id="end-yes">Да, прошло</button>
-      <button class="ghost-button" id="end-no">Ещё болит</button>
-    </div>
-  </div>
-
-  <!-- Как пользоваться -->
-  <div class="sheet" id="info-sheet" hidden>
-    <div class="sheet-content info">
-      <p class="sheet-label">Как пользоваться</p>
-
-      <h2 class="section-title">Когда начинается боль</h2>
-      <p>Нажмите «Началось»: время сохранится сразу. Всё остальное можно заполнить позже, когда станет легче, через «Дополнить запись». Когда боль пройдёт, нажмите «Прошло».</p>
-
-      <h2 class="section-title">Во время приступа</h2>
-      <p>Во вкладке «Помощь» есть фразы поддержки, дыхание, звуки, чек-лист и кнопка «Сообщить близким». Всё работает без интернета. На iPhone звуки не слышны, если включён беззвучный режим.</p>
-
-      <h2 class="section-title">Дни без боли</h2>
-      <p>Отмечать каждый день не нужно. Дни без записей считаются днями без боли и в календаре становятся зелёными.</p>
-
-      <h2 class="section-title">История и отчёт</h2>
-      <p>В «Истории» календарь, статистика и все приступы. Любую запись можно открыть, исправить или удалить, а пропущенный приступ добавить задним числом. «Отчёт для врача» собирает всё важное за 1, 3 или 6 месяцев.</p>
-
-      <h2 class="section-title">Ваши данные</h2>
-      <p>Записи хранятся только на этом устройстве и никуда не отправляются. Раз в месяц сохраняйте резервную копию в «Истории». На iPhone при удалении иконки с экрана данные стираются, поэтому сначала сохраните копию.</p>
-
-      <h2 class="section-title">Важно</h2>
-      <p>Приложение помогает вести дневник, но не заменяет врача. Список симптомов, при которых нужна срочная помощь, есть во вкладке «Помощь».</p>
-
-      <h2 class="section-title">Нашли ошибку или есть идея?</h2>
-      <p>Напишите мне, я буду очень рада обратной связи.</p>
-      <a class="primary-button" id="info-telegram" target="_blank" rel="noopener">Написать в Telegram</a>
-      <button class="ghost-button" id="info-close">Закрыть</button>
-      <p class="info-version" id="info-version"></p>
-    </div>
-  </div>
-
-  <!-- Сообщение близким -->
-  <div class="sheet" id="message-sheet" hidden>
-    <div class="sheet-content">
-      <p class="sheet-label">Сообщить близким</p>
-      <p class="hint-small">Текст сохранится для следующего раза. Кому отправить, выберете в меню «Поделиться».</p>
-      <textarea id="msg-text" rows="6"></textarea>
-      <button class="link-inline" id="msg-reset">Вернуть исходный текст</button>
-      <button class="primary-button" id="msg-send">Отправить</button>
-      <button class="ghost-button" id="msg-close">Закрыть</button>
-    </div>
-  </div>
-
-  <!-- Отчёт для врача -->
-  <div class="sheet" id="report-sheet" hidden>
-    <div class="sheet-content">
-      <div class="report-controls">
-        <p class="sheet-label">Отчёт для врача</p>
-        <div class="chips center" id="report-period"></div>
-      </div>
-      <div class="report" id="report-body"></div>
-      <div class="report-controls">
-        <button class="primary-button" id="report-share">Поделиться файлом</button>
-        <button class="ghost-button" id="report-print">Печать или PDF</button>
-        <button class="ghost-button" id="report-close">Закрыть</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="storage.js?v=16"></script>
-  <script src="logger.js?v=16"></script>
-  <script src="help.js?v=16"></script>
-  <script src="history.js?v=16"></script>
-  <script src="report.js?v=16"></script>
-  <script src="message.js?v=16"></script>
-  <script src="info.js?v=16"></script>
-  <script src="app.js?v=16"></script>
-</body>
-</html>
+    if (!cached) {
+      return network.catch(() => caches.match('index.html'));
+    }
+    const timeout = new Promise(resolve => setTimeout(() => resolve(cached), 3000));
+    return Promise.race([network.catch(() => cached), timeout]);
+  })());
+});

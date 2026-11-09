@@ -135,7 +135,7 @@ body::before {
   margin: 28px 0 12px;
 }
 
-input, textarea {
+input:not([type="checkbox"]):not([type="range"]), textarea {
   font-family: inherit;
   font-size: 16px;
   color: var(--text);
@@ -240,6 +240,108 @@ textarea { width: 100%; resize: vertical; }
 .end-med { margin-top: 24px; }
 .end-med p { margin-bottom: 10px; }
 .end-med .chips { justify-content: center; }
+
+/* ===== Экран «Помощь» ===== */
+.help { width: 100%; max-width: 520px; text-align: left; }
+
+.phrase {
+  min-height: 4.6em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1.4;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: opacity 0.8s ease;
+}
+.phrase.fading { opacity: 0; }
+
+.breath { display: flex; flex-direction: column; align-items: center; margin-top: 16px; }
+.breath-circle {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.breath-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(142, 154, 120, 0.35), rgba(142, 154, 120, 0.08));
+  border: 1px solid rgba(142, 154, 120, 0.5);
+  transform: scale(0.75);
+  transition: transform 1s ease-in-out;
+}
+.breath-ring.inhale { transform: scale(1); }
+.breath-ring.exhale { transform: scale(0.6); }
+#breath-label { position: relative; font-size: 22px; font-weight: 300; }
+#breath-count { position: relative; font-size: 16px; color: var(--text-muted); margin-top: 4px; }
+.breath .ghost-button { width: auto; padding: 12px 28px; margin-top: 16px; }
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+.volume input { flex: 1; accent-color: var(--accent); }
+
+.checklist { display: flex; flex-direction: column; gap: 2px; }
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.check-item input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--accent); }
+.check-item input:checked + span { color: var(--text-muted); text-decoration: line-through; }
+
+.red-flags {
+  margin-top: 32px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(181, 154, 106, 0.45);
+  background: rgba(181, 154, 106, 0.08);
+}
+.red-flags summary { font-size: 17px; cursor: pointer; }
+.red-flags ul { margin: 14px 0 0 20px; line-height: 1.5; font-size: 15px; }
+.red-flags li + li { margin-top: 6px; }
+.call-button {
+  display: block;
+  margin-top: 16px;
+  padding: 14px;
+  text-align: center;
+  border-radius: 14px;
+  background: rgba(181, 154, 106, 0.25);
+  border: 1px solid rgba(181, 154, 106, 0.6);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+.toggle-row input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* Режим без анимации */
+.no-motion .breath-ring { transition: none; transform: scale(0.85) !important; }
+.no-motion .phrase { transition: none; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

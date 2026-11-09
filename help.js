@@ -58,18 +58,55 @@ function buildPhraseList() {
   return [...personal, ...PHRASES];
 }
 
+let phraseFront = 'phrase-a'; // слой, который сейчас виден
+let phraseBusy = false;        // идёт ли смена фразы
+let phraseSwap = null;         // отложенная смена слоёв
+
+function otherLayer(id) {
+  return id === 'phrase-a' ? 'phrase-b' : 'phrase-a';
+}
+
+// Показать фразу сразу, без анимации
+function setPhraseNow(text) {
+  clearTimeout(phraseSwap);
+  phraseBusy = false;
+  const front = $(phraseFront);
+  const back = $(otherLayer(phraseFront));
+  front.textContent = text;
+  front.classList.add('visible');
+  front.removeAttribute('aria-hidden');
+  back.classList.remove('visible');
+  back.setAttribute('aria-hidden', 'true');
+  back.textContent = '';
+}
+
+// Сначала старая фраза полностью гаснет, потом проявляется новая.
+// Текст меняется только у невидимого и пустого слоя: так Safari не «склеивает» две фразы.
 function showPhrase(i) {
-  const el = $('phrase');
+  if (phraseBusy) return;
   phraseIndex = (i + phraseList.length) % phraseList.length;
+  const text = phraseList[phraseIndex];
   if (noMotion()) {
-    el.textContent = phraseList[phraseIndex];
+    setPhraseNow(text);
     return;
   }
-  el.classList.add('fading');
-  setTimeout(() => {
-    el.textContent = phraseList[phraseIndex];
-    el.classList.remove('fading');
-  }, 800);
+  phraseBusy = true;
+  const front = $(phraseFront);
+  const backId = otherLayer(phraseFront);
+  const back = $(backId);
+
+  front.classList.remove('visible');
+  front.setAttribute('aria-hidden', 'true');
+
+  phraseSwap = setTimeout(() => {
+    front.textContent = '';
+    back.textContent = text;
+    void back.offsetWidth; // даём браузеру отрисовать новый текст до начала проявления
+    back.classList.add('visible');
+    back.removeAttribute('aria-hidden');
+    phraseFront = backId;
+    phraseSwap = setTimeout(() => { phraseBusy = false; }, 850);
+  }, 900);
 }
 
 function restartPhraseTimer() {
@@ -80,7 +117,8 @@ function restartPhraseTimer() {
 function startPhrases() {
   phraseList = buildPhraseList();
   phraseIndex = 0;
-  $('phrase').textContent = phraseList[0];
+  phraseBusy = false;
+  setPhraseNow(phraseList[0]);
   restartPhraseTimer();
 }
 

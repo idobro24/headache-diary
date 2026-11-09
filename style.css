@@ -245,19 +245,23 @@ textarea { width: 100%; resize: vertical; }
 .help { width: 100%; max-width: 520px; text-align: left; }
 
 .phrase {
-  min-height: 4.6em;
-  display: flex;
+  display: grid;
   align-items: center;
-  justify-content: center;
+  min-height: 4.6em;
   text-align: center;
   font-size: 24px;
   font-weight: 300;
   line-height: 1.4;
   padding: 8px 4px;
   cursor: pointer;
+}
+/* Две фразы лежат друг на друге; видна только одна */
+.phrase-text {
+  grid-area: 1 / 1;
+  opacity: 0;
   transition: opacity 0.8s ease;
 }
-.phrase.fading { opacity: 0; }
+.phrase-text.visible { opacity: 1; }
 
 .breath { display: flex; flex-direction: column; align-items: center; margin-top: 16px; }
 .breath-circle {
@@ -341,7 +345,7 @@ textarea { width: 100%; resize: vertical; }
 
 /* Режим без анимации */
 .no-motion .breath-ring { transition: none; transform: scale(0.85) !important; }
-.no-motion .phrase { transition: none; }
+.no-motion .phrase-text { transition: none; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

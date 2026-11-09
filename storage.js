@@ -40,6 +40,8 @@ const Store = {
       symptoms: [],
       triggers: [],
       meds: [],
+      impact: null,
+      impactAreas: [],
       note: ''
     };
   },

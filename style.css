@@ -404,8 +404,11 @@ textarea { width: 100%; resize: vertical; }
   cursor: pointer;
 }
 .day.free, .dot.free { background: rgba(111, 138, 90, 0.4); }
-.day.light, .dot.light { background: rgba(184, 163, 94, 0.5); }
-.day.strong, .dot.strong { background: rgba(169, 97, 79, 0.6); }
+.day.level-1, .dot.level-1 { background: rgba(196, 184, 120, 0.45); }
+.day.level-2, .dot.level-2 { background: rgba(190, 150, 86, 0.55); }
+.day.level-3, .dot.level-3 { background: rgba(170, 105, 78, 0.65); }
+.day.level-4, .dot.level-4 { background: rgba(140, 70, 78, 0.8); }
+.day.level-0, .dot.level-0 { background: rgba(210, 207, 194, 0.15); }
 .day.none { background: none; color: var(--text-muted); }
 .day.future { background: none; color: var(--text-muted); opacity: 0.35; cursor: default; }
 .day.today { border-color: var(--text-muted); }

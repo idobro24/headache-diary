@@ -12,7 +12,9 @@ tabs.forEach(tab => {
   tab.addEventListener('click', () => showScreen(tab.dataset.screen));
 });
 
-// Кнопка «Началось» — пока заглушка
-document.getElementById('btn-start').addEventListener('click', () => {
-  alert('Скоро здесь будет логгер приступа');
+// Обновляем главный экран при запуске, каждые 30 секунд и при возврате в приложение
+renderHome();
+setInterval(renderHome, 30000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) renderHome();
 });

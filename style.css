@@ -544,9 +544,38 @@ label.ghost-button { cursor: pointer; }
 }
 .info p { font-size: 16px; line-height: 1.55; }
 .info .sheet-label { font-size: 22px; }
+.info p + p { margin-top: 10px; }
 .info .section-title { margin-top: 24px; }
 a.primary-button { text-align: center; text-decoration: none; }
 .info .info-version { margin-top: 16px; text-align: center; font-size: 12px; color: var(--text-muted); opacity: 0.7; }
+
+/* ===== Режим «Темнее тёмного» ===== */
+body.dim {
+  --bg-top: #121410;
+  --bg-bottom: #0A0B09;
+  --text: #8C897F;
+  --text-muted: #605E56;
+  --accent: #56604A;
+  --surface: rgba(140, 137, 127, 0.05);
+  --border: rgba(140, 137, 127, 0.1);
+}
+body.dim .sos-button { background: rgba(86, 96, 74, 0.2); border-color: #4A5340; }
+body.dim .chip.selected,
+body.dim .intensity-button.selected { background: rgba(86, 96, 74, 0.35); border-color: #56604A; }
+body.dim .breath-ring {
+  background: radial-gradient(circle, rgba(86, 96, 74, 0.3), rgba(86, 96, 74, 0.05));
+  border-color: rgba(86, 96, 74, 0.5);
+}
+body.dim .tabbar { background: rgba(10, 11, 9, 0.95); }
+body.dim .primary-button { color: #0A0B09; }
+body.dim .red-flags { border-color: rgba(150, 128, 90, 0.35); background: rgba(150, 128, 90, 0.05); }
+body.dim .call-button { background: rgba(150, 128, 90, 0.15); }
+/* Эмодзи и цвета календаря тоже приглушаем */
+body.dim .tab-icon,
+body.dim .emoji,
+body.dim .calendar,
+body.dim .dot { filter: grayscale(0.6) brightness(0.6); }
+.toggle-next { margin-top: 14px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

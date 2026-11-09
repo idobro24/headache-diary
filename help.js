@@ -22,6 +22,9 @@ const SELF_HELP = [
 ];
 
 const SOUNDS = [
+  { id: 'rain', label: 'Дождь' },
+  { id: 'forest', label: 'Дождь в лесу' },
+  { id: 'fire', label: 'Камин' },
   { id: 'white', label: 'Белый шум' },
   { id: 'pink', label: 'Мягкий шум' },
   { id: 'brown', label: 'Как водопад' }
@@ -137,37 +140,167 @@ $('breath-toggle').addEventListener('click', () => {
   if (breathTimer) stopBreathing(); else startBreathing();
 });
 
-// --- Звуки: шум генерируется прямо в браузере, файлы не нужны ---
+// --- Звуки: всё генерируется прямо в браузере, файлы не нужны ---
 
 let audioCtx = null;
 let gainNode = null;
 let noiseSource = null;
 let currentSound = null;
 
-function noiseBuffer(type) {
-  const length = audioCtx.sampleRate * 8;
-  const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
-  for (let i = 0; i < length; i++) {
-    const white = Math.random() * 2 - 1;
-    if (type === 'white') {
-      data[i] = white * 0.4;
-    } else if (type === 'pink') {
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      b3 = 0.86650 * b3 + white * 0.3104856;
-      b4 = 0.55000 * b4 + white * 0.5329522;
-      b5 = -0.7616 * b5 - white * 0.0168980;
-      data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
-      b6 = white * 0.115926;
+const LOOP_SECONDS = 12;   // длина звуковой петли
+const FADE_SECONDS = 0.5;  // плавная склейка конца петли с началом
+const soundCache = {};
+
+// Коэффициент простого фильтра для заданной частоты среза
+function onePole(cutoff, sr) {
+  return 1 - Math.exp(-2 * Math.PI * cutoff / sr);
+}
+
+function whiteSource() {
+  return () => Math.random() * 2 - 1;
+}
+
+function pinkSource() {
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  return () => {
+    const w = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + w * 0.0555179;
+    b1 = 0.99332 * b1 + w * 0.0750759;
+    b2 = 0.96900 * b2 + w * 0.1538520;
+    b3 = 0.86650 * b3 + w * 0.3104856;
+    b4 = 0.55000 * b4 + w * 0.5329522;
+    b5 = -0.7616 * b5 - w * 0.0168980;
+    const out = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+    b6 = w * 0.115926;
+    return out;
+  };
+}
+
+function brownSource() {
+  let last = 0;
+  return () => {
+    last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+    return last * 3.5;
+  };
+}
+
+function normalizeRms(data, target) {
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+  const rms = Math.sqrt(sum / data.length) || 1;
+  const k = target / rms;
+  for (let i = 0; i < data.length; i++) data[i] *= k;
+}
+
+// Короткий всплеск с затуханием: капля дождя или треск дерева
+function addBurst(data, start, amp, decaySec, cutoff, sr) {
+  const decay = decaySec * sr;
+  const a = onePole(cutoff, sr);
+  const comp = 1 / Math.sqrt(a / (2 - a)); // чтобы низкие капли не были тише высоких
+  const end = Math.min(data.length, start + Math.floor(decay * 6));
+  let lp = 0;
+  for (let i = start; i < end; i++) {
+    lp += a * ((Math.random() * 2 - 1) - lp);
+    data[i] += lp * comp * 0.3 * amp * Math.exp(-(i - start) / decay);
+  }
+}
+
+function genNoise(data, source) {
+  for (let i = 0; i < data.length; i++) data[i] = source();
+}
+
+function genRain(data, sr, forest) {
+  // Ровный шелест: розовый шум без самых низких и самых высоких частот
+  const noise = pinkSource();
+  const rumble = brownSource();
+  const aLow = onePole(forest ? 1400 : 5000, sr);
+  const aHigh = onePole(forest ? 120 : 350, sr);
+  let lp = 0, hp = 0;
+  for (let i = 0; i < data.length; i++) {
+    lp += aLow * (noise() - lp);
+    hp += aHigh * (lp - hp);
+    let s = lp - hp;
+    if (forest) {
+      const t = i / sr;
+      s = s * (0.8 + 0.2 * Math.sin(2 * Math.PI * t * 0.11)) + rumble() * 0.02;
+    }
+    data[i] = s;
+  }
+  normalizeRms(data, 0.1);
+
+  // Капли: в городе мелкие и частые, в лесу крупные и редкие (с листьев)
+  const seconds = data.length / sr;
+  const drops = Math.floor(seconds * (forest ? 14 : 55));
+  for (let d = 0; d < drops; d++) {
+    const start = Math.floor(Math.random() * data.length);
+    if (forest) {
+      addBurst(data, start, 0.25 + Math.random() * 0.45, 0.01 + Math.random() * 0.02,
+               700 + Math.random() * 1300, sr);
     } else {
-      last = (last + 0.02 * white) / 1.02;
-      data[i] = last * 3.5;
+      addBurst(data, start, 0.08 + Math.random() * 0.3, 0.003 + Math.random() * 0.005,
+               3000 + Math.random() * 4000, sr);
     }
   }
-  return buffer;
+}
+
+function genFire(data, sr) {
+  // Тихий низкий гул пламени, который слегка «дышит»
+  const noise = brownSource();
+  const a = onePole(250, sr);
+  let lp = 0;
+  for (let i = 0; i < data.length; i++) {
+    lp += a * (noise() - lp);
+    const t = i / sr;
+    data[i] = lp * (0.75 + 0.25 * Math.sin(2 * Math.PI * t * 0.23) * Math.sin(2 * Math.PI * t * 0.37 + 1));
+  }
+  normalizeRms(data, 0.06);
+
+  // Треск: неравномерные щелчки, иногда сериями, изредка громкий «щелчок полена»
+  let pos = 0;
+  while (pos < data.length) {
+    pos += Math.floor(sr * (0.015 + Math.random() * Math.random() * 0.5));
+    const pop = Math.random() < 0.06;
+    addBurst(data, pos,
+             pop ? 0.5 + Math.random() * 0.3 : 0.08 + Math.random() * 0.25,
+             pop ? 0.006 : 0.001 + Math.random() * 0.0015,
+             pop ? 2500 : 4000 + Math.random() * 5000, sr);
+    if (Math.random() < 0.25) {
+      const n = 2 + Math.floor(Math.random() * 4);
+      let p = pos;
+      for (let k = 0; k < n; k++) {
+        p += Math.floor(sr * (0.008 + Math.random() * 0.04));
+        addBurst(data, p, 0.05 + Math.random() * 0.15, 0.001, 6000, sr);
+      }
+    }
+  }
+}
+
+// Плавно склеиваем конец с началом, чтобы при повторе не было щелчка
+function makeLoop(data, sr) {
+  const f = Math.floor(FADE_SECONDS * sr);
+  const out = new Float32Array(data.length - f);
+  out.set(data.subarray(0, out.length));
+  for (let i = 0; i < f; i++) {
+    const t = i / f;
+    out[i] = data[i] * Math.sqrt(t) + data[data.length - f + i] * Math.sqrt(1 - t);
+  }
+  return out;
+}
+
+function getSamples(type, sr) {
+  const key = type + sr;
+  if (soundCache[key]) return soundCache[key];
+  const data = new Float32Array(Math.floor((LOOP_SECONDS + FADE_SECONDS) * sr));
+  if (type === 'white') genNoise(data, whiteSource());
+  else if (type === 'pink') genNoise(data, pinkSource());
+  else if (type === 'brown') genNoise(data, brownSource());
+  else if (type === 'rain') genRain(data, sr, false);
+  else if (type === 'forest') genRain(data, sr, true);
+  else if (type === 'fire') genFire(data, sr);
+  normalizeRms(data, 0.12); // все звуки примерно одинаковой громкости
+  for (let i = 0; i < data.length; i++) data[i] = Math.tanh(data[i]); // мягко срезаем пики
+  soundCache[key] = makeLoop(data, sr);
+  return soundCache[key];
 }
 
 function playSound(type) {
@@ -185,7 +318,10 @@ function playSound(type) {
   stopSound(true);
 
   noiseSource = audioCtx.createBufferSource();
-  noiseSource.buffer = noiseBuffer(type);
+  const samples = getSamples(type, audioCtx.sampleRate);
+  const buffer = audioCtx.createBuffer(1, samples.length, audioCtx.sampleRate);
+  buffer.getChannelData(0).set(samples);
+  noiseSource.buffer = buffer;
   noiseSource.loop = true;
   noiseSource.connect(gainNode);
 

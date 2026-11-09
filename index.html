@@ -10,10 +10,11 @@
 <body>
   <main id="app">
     <section class="screen active" id="screen-home">
-      <h1 class="title">Как вы сегодня?</h1>
+      <h1 class="title" id="home-title">Как вы сегодня?</h1>
       <p class="subtitle" id="home-status">Хорошего дня 🌿</p>
       <button class="sos-button" id="btn-start">Началось</button>
-      <p class="hint">Нажмите, когда начнётся боль</p>
+      <p class="hint" id="home-hint">Нажмите, когда начнётся боль</p>
+      <button class="link-button" id="btn-edit" hidden>Дополнить запись</button>
     </section>
 
     <section class="screen" id="screen-help">
@@ -39,6 +40,53 @@
     </button>
   </nav>
 
+  <!-- Логгер приступа -->
+  <div class="sheet" id="logger" hidden>
+    <div class="sheet-content">
+      <p class="sheet-label">Приступ записан 🌿</p>
+      <label class="time-row">Начало: <input type="time" id="lg-time"></label>
+
+      <h2 class="section-title">Насколько сильно?</h2>
+      <div class="intensity" id="lg-intensity"></div>
+
+      <h2 class="section-title">Как и где болит</h2>
+      <div class="chips" id="lg-tags"></div>
+
+      <h2 class="section-title">Симптомы</h2>
+      <div class="chips" id="lg-symptoms"></div>
+
+      <h2 class="section-title">Что могло спровоцировать</h2>
+      <div class="chips" id="lg-triggers"></div>
+
+      <h2 class="section-title">Лекарство</h2>
+      <div class="med-row">
+        <input id="lg-med-name" list="med-list" placeholder="Название" autocomplete="off">
+        <input id="lg-med-dose" placeholder="Доза">
+        <button class="small-button" id="lg-med-add">+</button>
+      </div>
+      <datalist id="med-list"></datalist>
+      <ul class="med-list" id="lg-meds"></ul>
+
+      <h2 class="section-title">Заметка</h2>
+      <textarea id="lg-note" rows="3" placeholder="Необязательно"></textarea>
+
+      <button class="primary-button" id="lg-done">Готово</button>
+    </div>
+  </div>
+
+  <!-- Завершение приступа -->
+  <div class="sheet" id="end-sheet" hidden>
+    <div class="sheet-content">
+      <h2 class="title">Приступ закончился?</h2>
+      <p class="subtitle" id="end-duration"></p>
+      <div id="end-meds"></div>
+      <button class="primary-button" id="end-yes">Да, прошло</button>
+      <button class="ghost-button" id="end-no">Ещё болит</button>
+    </div>
+  </div>
+
+  <script src="storage.js"></script>
+  <script src="logger.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

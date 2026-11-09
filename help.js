@@ -426,6 +426,25 @@ $('no-motion').addEventListener('change', e => {
   try { localStorage.setItem('hd.noMotion', e.target.checked ? '1' : '0'); } catch (err) {}
 });
 
+// --- Режим «Темнее тёмного» ---
+
+function applyDim(on) {
+  document.body.classList.toggle('dim', on);
+  // цвет системной полосы сверху тоже делаем темнее
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', on ? '#0A0B09' : '#22271F');
+}
+
+let savedDim = false;
+try { savedDim = localStorage.getItem('hd.dim') === '1'; } catch (e) {}
+$('dim-mode').checked = savedDim;
+applyDim(savedDim);
+
+$('dim-mode').addEventListener('change', e => {
+  applyDim(e.target.checked);
+  try { localStorage.setItem('hd.dim', e.target.checked ? '1' : '0'); } catch (err) {}
+});
+
 // --- Вход на экран и выход с него ---
 
 function helpShown() {

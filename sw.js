@@ -1,5 +1,5 @@
 // Офлайн-режим: приложение сохраняет свои файлы и работает без интернета
-const CACHE = 'hd-v20';
+const CACHE = 'hd-v21';
 const FILES = [
   './',
   'index.html',

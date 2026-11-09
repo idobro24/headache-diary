@@ -1,6 +1,7 @@
 // Хранилище данных на устройстве
 const Store = {
   KEY: 'hd.episodes',
+  FIRST_USE_KEY: 'hd.firstUse',
 
   load() {
     try {
@@ -25,11 +26,15 @@ const Store = {
     this.save(all);
   },
 
-  create() {
-    const ep = {
-      id: Date.now().toString(36),
-      start: new Date().toISOString(),
-      end: null,
+  remove(id) {
+    this.save(this.load().filter(e => e.id !== id));
+  },
+
+  blank(start, end) {
+    return {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      start: start.toISOString(),
+      end: end ? end.toISOString() : null,
       intensity: null,
       tags: [],
       symptoms: [],
@@ -37,6 +42,18 @@ const Store = {
       meds: [],
       note: ''
     };
+  },
+
+  // Новый приступ, который идёт прямо сейчас
+  create() {
+    const ep = this.blank(new Date(), null);
+    this.upsert(ep);
+    return ep;
+  },
+
+  // Прошлый приступ, который уже закончился
+  createPast(start, end) {
+    const ep = this.blank(start, end);
     this.upsert(ep);
     return ep;
   },
@@ -59,5 +76,21 @@ const Store = {
         if (!names.includes(m.name)) names.push(m.name);
       }));
     return names;
+  },
+
+  // С какого дня ведётся дневник: дни раньше не красим в календаре
+  firstUse() {
+    let first = null;
+    try { first = localStorage.getItem(this.FIRST_USE_KEY); } catch (e) {}
+    if (!first) {
+      first = new Date().toISOString();
+      try { localStorage.setItem(this.FIRST_USE_KEY, first); } catch (e) {}
+    }
+    let date = new Date(first);
+    this.load().forEach(e => {
+      const s = new Date(e.start);
+      if (s < date) date = s;
+    });
+    return date;
   }
 };

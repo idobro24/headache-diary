@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#22271F">
   <title>Дневник головной боли</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
   <main id="app">
@@ -53,13 +53,34 @@
         </details>
 
         <label class="toggle-row"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 8</p>
+        <p class="version">Версия 9</p>
       </div>
     </section>
 
     <section class="screen" id="screen-history">
-      <h1 class="title">История</h1>
-      <p class="subtitle">Здесь будут календарь и статистика</p>
+      <div class="history">
+        <div class="month-nav">
+          <button class="nav-button" id="month-prev" aria-label="Предыдущий месяц">‹</button>
+          <h1 class="month-title" id="month-title"></h1>
+          <button class="nav-button" id="month-next" aria-label="Следующий месяц">›</button>
+        </div>
+        <div class="calendar" id="calendar"></div>
+        <div class="legend">
+          <span><i class="dot free"></i>Без боли</span>
+          <span><i class="dot light"></i>Лёгкая</span>
+          <span><i class="dot strong"></i>Сильная</span>
+        </div>
+
+        <div class="list-head">
+          <h2 class="section-title" id="list-title">Приступы за месяц</h2>
+          <button class="link-inline" id="show-month" hidden>Весь месяц</button>
+        </div>
+        <div id="episode-list"></div>
+        <button class="ghost-button" id="btn-add-past">Добавить прошлый приступ</button>
+
+        <h2 class="section-title">Статистика месяца</h2>
+        <div id="stats"></div>
+      </div>
     </section>
   </main>
 
@@ -78,8 +99,12 @@
   <!-- Логгер приступа -->
   <div class="sheet" id="logger" hidden>
     <div class="sheet-content">
-      <p class="sheet-label">Приступ записан 🌿</p>
-      <label class="time-row">Начало: <input type="time" id="lg-time"></label>
+      <p class="sheet-label" id="lg-title">Приступ записан 🌿</p>
+      <label class="time-row" id="lg-time-row">Начало: <input type="time" id="lg-time"></label>
+      <div class="range-rows" id="lg-range-row" hidden>
+        <label class="range-row">Начало <input type="datetime-local" id="lg-start-dt"></label>
+        <label class="range-row">Конец <input type="datetime-local" id="lg-end-dt"></label>
+      </div>
 
       <h2 class="section-title">Насколько сильно?</h2>
       <div class="intensity" id="lg-intensity"></div>
@@ -106,6 +131,7 @@
       <textarea id="lg-note" rows="3" placeholder="Необязательно"></textarea>
 
       <button class="primary-button" id="lg-done">Готово</button>
+      <button class="ghost-button danger" id="lg-delete">Удалить запись</button>
     </div>
   </div>
 
@@ -120,9 +146,10 @@
     </div>
   </div>
 
-  <script src="storage.js?v=5"></script>
-  <script src="logger.js?v=5"></script>
-  <script src="help.js?v=8"></script>
-  <script src="app.js?v=5"></script>
+  <script src="storage.js?v=9"></script>
+  <script src="logger.js?v=9"></script>
+  <script src="help.js?v=9"></script>
+  <script src="history.js?v=9"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

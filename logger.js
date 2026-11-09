@@ -1,4 +1,4 @@
-// Логгер приступа
+// Логгер приступа: запись, дополнение, редактирование и удаление
 const OPTIONS = {
   intensity: [
     { value: 1, label: 'Лёгкая', emoji: '🙂' },
@@ -13,6 +13,8 @@ const OPTIONS = {
   meds: ['Ибупрофен', 'Парацетамол', 'Нурофен', 'Цитрамон', 'Пенталгин', 'Кеторол',
          'Суматриптан', 'Золмитриптан', 'Элетриптан', 'Ризатриптан']
 };
+
+const HELPED = [['yes', 'Помогло'], ['partly', 'Частично'], ['no', 'Не помогло']];
 
 let current = null;          // запись, которую сейчас редактируем
 let openedFromStart = false; // открыт ли логгер кнопкой «Началось»
@@ -30,7 +32,8 @@ function formatDuration(ms) {
   const total = Math.max(0, Math.round(ms / 60000));
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return h === 0 ? m + ' мин' : h + ' ч ' + m + ' мин';
+  if (h === 0) return m + ' мин';
+  return m === 0 ? h + ' ч' : h + ' ч ' + m + ' мин';
 }
 
 function daysWord(n) {
@@ -38,6 +41,22 @@ function daysWord(n) {
   if (a === 1 && b !== 11) return 'день';
   if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'дня';
   return 'дней';
+}
+
+// Дата и время для поля datetime-local и обратно
+function toLocalInput(iso) {
+  const d = new Date(iso);
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+         'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function parseLocalInput(value) {
+  if (!value || !value.includes('T')) return null;
+  const [date, time] = value.split('T');
+  const [y, mo, d] = date.split('-').map(Number);
+  const [h, mi] = time.split(':').map(Number);
+  const result = new Date(y, mo - 1, d, h, mi);
+  return isNaN(result) ? null : result;
 }
 
 // --- Отрисовка элементов логгера ---
@@ -89,16 +108,36 @@ function renderMeds() {
   current.meds.forEach((med, i) => {
     const li = document.createElement('li');
     const text = document.createElement('span');
-    text.textContent = timeOf(med.time) + ' · ' + med.name + (med.dose ? ', ' + med.dose : '');
+    text.textContent = timeOf(med.time) + ', ' + med.name + (med.dose ? ', ' + med.dose : '');
     const del = document.createElement('button');
     del.className = 'small-button';
     del.textContent = '✕';
+    del.setAttribute('aria-label', 'Удалить лекарство');
     del.addEventListener('click', () => {
       current.meds.splice(i, 1);
       Store.upsert(current);
       renderMeds();
     });
     li.append(text, del);
+
+    // У завершённого приступа можно сразу отметить, помогло ли лекарство
+    if (current.end) {
+      const row = document.createElement('div');
+      row.className = 'chips';
+      HELPED.forEach(([val, label]) => {
+        const b = document.createElement('button');
+        b.className = 'chip';
+        b.textContent = label;
+        b.classList.toggle('selected', med.helped === val);
+        b.addEventListener('click', () => {
+          med.helped = med.helped === val ? null : val;
+          Store.upsert(current);
+          renderMeds();
+        });
+        row.appendChild(b);
+      });
+      li.appendChild(row);
+    }
     list.appendChild(li);
   });
 }
@@ -116,12 +155,14 @@ function fillMedList() {
 }
 
 function addPendingMed() {
+  if (!current) return;
   const name = $('lg-med-name').value.trim();
   if (!name) return;
   current.meds.push({
     name,
     dose: $('lg-med-dose').value.trim(),
-    time: new Date().toISOString(),
+    // для прошлого приступа время приёма неизвестно, берём начало приступа
+    time: current.end ? current.start : new Date().toISOString(),
     helped: null
   });
   Store.upsert(current);
@@ -136,7 +177,18 @@ function addPendingMed() {
 function openLogger(ep, fromStart) {
   current = ep;
   openedFromStart = fromStart;
-  $('lg-time').value = timeOf(ep.start);
+  const isActive = !ep.end;
+
+  $('lg-title').textContent = fromStart ? 'Приступ записан 🌿' : 'Запись о приступе';
+  $('lg-time-row').hidden = !isActive;
+  $('lg-range-row').hidden = isActive;
+  if (isActive) {
+    $('lg-time').value = timeOf(ep.start);
+  } else {
+    $('lg-start-dt').value = toLocalInput(ep.start);
+    $('lg-end-dt').value = toLocalInput(ep.end);
+  }
+
   $('lg-note').value = ep.note;
   renderIntensity();
   renderChips('lg-tags', OPTIONS.tags, 'tags');
@@ -148,12 +200,17 @@ function openLogger(ep, fromStart) {
   $('logger').scrollTop = 0;
 }
 
+function refreshScreens() {
+  renderHome();
+  renderHistory();
+}
+
 function closeLogger() {
   addPendingMed(); // если лекарство вписано, но «+» не нажат
   $('logger').hidden = true;
   const goHelp = openedFromStart;
   current = null;
-  renderHome();
+  refreshScreens();
   if (goHelp) showScreen('help');
 }
 
@@ -172,7 +229,7 @@ function openEndSheet() {
     const block = document.createElement('div');
     block.className = 'end-med';
     const q = document.createElement('p');
-    q.textContent = med.name + ' — помогло?';
+    q.textContent = med.name + ': помогло?';
     const row = document.createElement('div');
     row.className = 'chips';
     [['yes', 'Да'], ['partly', 'Частично'], ['no', 'Нет']].forEach(([val, label]) => {
@@ -235,6 +292,7 @@ $('btn-edit').addEventListener('click', () => {
   if (ep) openLogger(ep, false);
 });
 
+// Время начала идущего приступа
 $('lg-time').addEventListener('change', e => {
   const [h, m] = e.target.value.split(':').map(Number);
   if (isNaN(h) || isNaN(m)) return;
@@ -242,6 +300,29 @@ $('lg-time').addEventListener('change', e => {
   d.setHours(h, m, 0, 0);
   if (d > new Date()) d.setDate(d.getDate() - 1); // началось вчера вечером
   current.start = d.toISOString();
+  Store.upsert(current);
+});
+
+// Начало и конец завершённого приступа
+$('lg-start-dt').addEventListener('change', e => {
+  const d = parseLocalInput(e.target.value);
+  if (!d || d > new Date() || d >= new Date(current.end)) {
+    alert('Начало должно быть раньше конца приступа и не в будущем.');
+    e.target.value = toLocalInput(current.start);
+    return;
+  }
+  current.start = d.toISOString();
+  Store.upsert(current);
+});
+
+$('lg-end-dt').addEventListener('change', e => {
+  const d = parseLocalInput(e.target.value);
+  if (!d || d > new Date() || d <= new Date(current.start)) {
+    alert('Конец должен быть позже начала приступа и не в будущем.');
+    e.target.value = toLocalInput(current.end);
+    return;
+  }
+  current.end = d.toISOString();
   Store.upsert(current);
 });
 
@@ -254,12 +335,21 @@ $('lg-note').addEventListener('input', e => {
 $('lg-med-add').addEventListener('click', addPendingMed);
 $('lg-done').addEventListener('click', closeLogger);
 
+$('lg-delete').addEventListener('click', () => {
+  if (!current) return;
+  if (!confirm('Удалить эту запись? Это действие нельзя отменить.')) return;
+  Store.remove(current.id);
+  current = null;
+  $('logger').hidden = true;
+  refreshScreens();
+});
+
 $('end-yes').addEventListener('click', () => {
   current.end = new Date().toISOString();
   Store.upsert(current);
   current = null;
   $('end-sheet').hidden = true;
-  renderHome();
+  refreshScreens();
 });
 
 $('end-no').addEventListener('click', () => {

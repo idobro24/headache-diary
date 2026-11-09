@@ -105,6 +105,9 @@ function buildReport(days) {
   html += '<tr><th>Сила приступов</th><td>' + levelCounts.join(', ') + '</td></tr>';
   html += '<tr><th>Дней с обезболивающими</th><td>' + medDays.size +
           ' (в среднем ' + perMonth(medDays.size) + ' в месяц)</td></tr>';
+  const impactDays = impactByDay(episodes, d => d >= from);
+  html += '<tr><th>Дней, когда пришлось отменить дела</th><td>' + impactDays.missed + '</td></tr>';
+  html += '<tr><th>Дней, когда дела давались через силу</th><td>' + impactDays.reduced + '</td></tr>';
   html += '</table></div>';
 
   if (!episodes.length) {
@@ -115,6 +118,7 @@ function buildReport(days) {
   html += listSection('Сопутствующие симптомы', countItems(episodes, 'symptoms'), episodes.length);
   html += listSection('Характер и место боли', countItems(episodes, 'tags'), episodes.length);
   html += listSection('Возможные триггеры (отмечены пациентом)', countItems(episodes, 'triggers'), episodes.length);
+  html += listSection('Что страдало из-за приступов', countItems(episodes, 'impactAreas'), episodes.length);
 
   // Лекарства: сколько раз принимались и помогали ли
   const meds = {};
@@ -139,7 +143,7 @@ function buildReport(days) {
   // Все приступы по порядку
   html += '<h2>Все приступы</h2><div class="table-wrap"><table class="r-episodes">';
   html += '<tr><th>Дата</th><th>Время</th><th>Длительность</th><th>Сила</th>' +
-          '<th>Характер и симптомы</th><th>Триггеры</th><th>Лекарства</th><th>Заметка</th></tr>';
+          '<th>Характер и симптомы</th><th>Триггеры</th><th>Лекарства</th><th>Влияние на день</th><th>Заметка</th></tr>';
   episodes.forEach(ep => {
     const start = new Date(ep.start);
     const end = ep.end ? new Date(ep.end) : null;
@@ -151,6 +155,10 @@ function buildReport(days) {
       const helped = { yes: 'помогло', partly: 'частично', no: 'не помогло' }[m.helped];
       return m.name + (m.dose ? ' ' + m.dose : '') + (helped ? ' (' + helped + ')' : '');
     }).join(', ');
+    const impactLabel = { none: 'почти не мешал', reduced: 'дела через силу', missed: 'пришлось отменить дела' }[ep.impact];
+    const impactText = impactLabel
+      ? impactLabel + ((ep.impactAreas || []).length ? ' (' + ep.impactAreas.join(', ').toLowerCase() + ')' : '')
+      : '—';
     html += '<tr>' +
       '<td>' + fullDate(start) + '</td>' +
       '<td>' + escapeHtml(time) + '</td>' +
@@ -159,6 +167,7 @@ function buildReport(days) {
       '<td>' + escapeHtml([...ep.tags, ...ep.symptoms].join(', ') || '—') + '</td>' +
       '<td>' + escapeHtml(ep.triggers.join(', ') || '—') + '</td>' +
       '<td>' + escapeHtml(medsText || '—') + '</td>' +
+      '<td>' + escapeHtml(impactText) + '</td>' +
       '<td>' + escapeHtml(ep.note || '—') + '</td>' +
       '</tr>';
   });
@@ -264,6 +273,8 @@ function normalizeEpisode(ep) {
       time: !isNaN(new Date(m.time)) ? new Date(m.time).toISOString() : new Date(ep.start).toISOString(),
       helped: ['yes', 'partly', 'no'].includes(m.helped) ? m.helped : null
     })) : [],
+    impact: ['none', 'reduced', 'missed'].includes(ep.impact) ? ep.impact : null,
+    impactAreas: list(ep.impactAreas),
     note: typeof ep.note === 'string' ? ep.note : ''
   };
 }

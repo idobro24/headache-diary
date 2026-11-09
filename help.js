@@ -58,30 +58,19 @@ function buildPhraseList() {
   return [...personal, ...PHRASES];
 }
 
-let phraseFront = 'phrase-a'; // слой, который сейчас виден
-let phraseBusy = false;        // идёт ли смена фразы
-let phraseSwap = null;         // отложенная смена слоёв
-
-function otherLayer(id) {
-  return id === 'phrase-a' ? 'phrase-b' : 'phrase-a';
-}
+let phraseBusy = false; // идёт ли смена фразы
+let phraseSwap = null;  // отложенный шаг смены
 
 // Показать фразу сразу, без анимации
 function setPhraseNow(text) {
   clearTimeout(phraseSwap);
   phraseBusy = false;
-  const front = $(phraseFront);
-  const back = $(otherLayer(phraseFront));
-  front.textContent = text;
-  front.classList.add('visible');
-  front.removeAttribute('aria-hidden');
-  back.classList.remove('visible');
-  back.setAttribute('aria-hidden', 'true');
-  back.textContent = '';
+  const el = $('phrase');
+  el.classList.remove('fading');
+  el.textContent = text;
 }
 
-// Сначала старая фраза полностью гаснет, потом проявляется новая.
-// Текст меняется только у невидимого и пустого слоя: так Safari не «склеивает» две фразы.
+// Фраза плавно гаснет (через цвет текста), меняется, пока невидима, и плавно проявляется
 function showPhrase(i) {
   if (phraseBusy) return;
   phraseIndex = (i + phraseList.length) % phraseList.length;
@@ -91,22 +80,15 @@ function showPhrase(i) {
     return;
   }
   phraseBusy = true;
-  const front = $(phraseFront);
-  const backId = otherLayer(phraseFront);
-  const back = $(backId);
-
-  front.classList.remove('visible');
-  front.setAttribute('aria-hidden', 'true');
-
+  const el = $('phrase');
+  el.classList.add('fading');
   phraseSwap = setTimeout(() => {
-    front.textContent = '';
-    back.textContent = text;
-    void back.offsetWidth; // даём браузеру отрисовать новый текст до начала проявления
-    back.classList.add('visible');
-    back.removeAttribute('aria-hidden');
-    phraseFront = backId;
-    phraseSwap = setTimeout(() => { phraseBusy = false; }, 850);
-  }, 900);
+    el.textContent = text;
+    phraseSwap = setTimeout(() => {
+      el.classList.remove('fading');
+      phraseSwap = setTimeout(() => { phraseBusy = false; }, 850);
+    }, 50);
+  }, 850);
 }
 
 function restartPhraseTimer() {

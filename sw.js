@@ -1,5 +1,5 @@
 // Офлайн-режим: приложение сохраняет свои файлы и работает без интернета
-const CACHE = 'hd-v14';
+const CACHE = 'hd-v16';
 const FILES = [
   './',
   'index.html',
@@ -9,6 +9,8 @@ const FILES = [
   'help.js',
   'history.js',
   'report.js',
+  'message.js',
+  'info.js',
   'app.js',
   'manifest.json',
   'icon-180.png',

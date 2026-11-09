@@ -1,6 +1,6 @@
 {
-  "name": "Дневник головной боли",
-  "short_name": "Дневник",
+  "name": "Тише — дневник головной боли",
+  "short_name": "Тише",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
@@ -9,8 +9,23 @@
   "background_color": "#22271F",
   "theme_color": "#22271F",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

@@ -10,6 +10,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 
 html { background: var(--bg-bottom); }
 
@@ -351,6 +352,114 @@ textarea { width: 100%; resize: vertical; }
 /* Режим без анимации */
 .no-motion .breath-ring { transition: none; transform: scale(0.85) !important; }
 .no-motion .phrase { transition: none; }
+
+/* ===== Редактирование приступа ===== */
+.range-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.range-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 16px;
+}
+.range-row input { padding: 8px 10px; color-scheme: dark; }
+.med-list li { flex-wrap: wrap; }
+.med-list li .chips { width: 100%; padding-bottom: 4px; }
+.med-list li .chip { padding: 6px 12px; font-size: 14px; }
+.ghost-button.danger {
+  margin-top: 24px;
+  color: #C98B7A;
+  border-color: rgba(201, 139, 122, 0.35);
+}
+
+/* ===== Экран «История» ===== */
+.history { width: 100%; max-width: 520px; text-align: left; }
+.month-nav { display: flex; align-items: center; justify-content: space-between; }
+.month-title { font-size: 24px; font-weight: 300; }
+.nav-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 22px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.nav-button:disabled { opacity: 0.3; cursor: default; }
+
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 20px; }
+.weekday { text-align: center; font-size: 13px; color: var(--text-muted); padding-bottom: 4px; }
+.day {
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.day.free, .dot.free { background: rgba(111, 138, 90, 0.4); }
+.day.light, .dot.light { background: rgba(184, 163, 94, 0.5); }
+.day.strong, .dot.strong { background: rgba(169, 97, 79, 0.6); }
+.day.none { background: none; color: var(--text-muted); }
+.day.future { background: none; color: var(--text-muted); opacity: 0.35; cursor: default; }
+.day.today { border-color: var(--text-muted); }
+.day.selected { border: 2px solid var(--text); }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: var(--text-muted); }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; }
+
+.list-head { display: flex; align-items: baseline; justify-content: space-between; }
+.link-inline {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 15px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ep-card {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 14px 16px;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+.ep-meta { margin-top: 4px; font-size: 14px; color: var(--text-muted); }
+.empty { padding: 8px 0; font-size: 15px; color: var(--text-muted); }
+#btn-add-past { margin-top: 8px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.stat { padding: 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); }
+.stat-value { font-size: 26px; font-weight: 300; }
+.stat-label { margin-top: 2px; font-size: 14px; color: var(--text-muted); }
+.stat-sub { margin-top: 6px; font-size: 13px; color: var(--text-muted); opacity: 0.8; }
+.stat-block {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.stat-block h3 { margin-bottom: 6px; font-size: 15px; font-weight: 500; color: var(--text-muted); }
+.note { margin-top: 8px; font-size: 14px; color: #CDB98A; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

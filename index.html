@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#22271F">
   <title>Дневник головной боли</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <main id="app">
@@ -18,8 +18,42 @@
     </section>
 
     <section class="screen" id="screen-help">
-      <h1 class="title">Помощь</h1>
-      <p class="subtitle">Здесь будут дыхание и поддержка</p>
+      <div class="help">
+        <p class="phrase" id="phrase">Эта боль временная. Она пройдёт.</p>
+
+        <div class="breath">
+          <div class="breath-circle">
+            <div class="breath-ring" id="breath-ring"></div>
+            <span id="breath-label">Дыхание</span>
+            <span id="breath-count">4 / 6</span>
+          </div>
+          <button class="ghost-button" id="breath-toggle">Начать дыхание</button>
+        </div>
+
+        <h2 class="section-title">Звуки</h2>
+        <div class="chips" id="sounds"></div>
+        <label class="volume">Громкость
+          <input type="range" id="volume" min="0" max="1" step="0.05" value="0.25">
+        </label>
+
+        <h2 class="section-title">Что может помочь</h2>
+        <div class="checklist" id="checklist"></div>
+
+        <details class="red-flags">
+          <summary>Когда нужна срочная помощь</summary>
+          <ul>
+            <li>Внезапная сильнейшая боль, достигшая пика за секунды или минуту</li>
+            <li>Слабость или онемение в руке или ноге, перекос лица, нарушение речи или зрения</li>
+            <li>Высокая температура вместе с напряжением мышц шеи</li>
+            <li>Боль после удара или травмы головы</li>
+            <li>Спутанность сознания, сильная сонливость, судороги</li>
+            <li>Боль, совсем не похожая на ваши обычные приступы</li>
+          </ul>
+          <a class="call-button" href="tel:103">Позвонить в скорую: 103</a>
+        </details>
+
+        <label class="toggle-row"><input type="checkbox" id="no-motion"> Без анимации</label>
+      </div>
     </section>
 
     <section class="screen" id="screen-history">
@@ -62,7 +96,7 @@
       <div class="med-row">
         <input id="lg-med-name" list="med-list" placeholder="Название" autocomplete="off">
         <input id="lg-med-dose" placeholder="Доза">
-        <button class="small-button" id="lg-med-add">+</button>
+        <button class="small-button" id="lg-med-add" aria-label="Добавить лекарство">+</button>
       </div>
       <datalist id="med-list"></datalist>
       <ul class="med-list" id="lg-meds"></ul>
@@ -85,8 +119,9 @@
     </div>
   </div>
 
-  <script src="storage.js"></script>
-  <script src="logger.js"></script>
-  <script src="app.js"></script>
+  <script src="storage.js?v=5"></script>
+  <script src="logger.js?v=5"></script>
+  <script src="help.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

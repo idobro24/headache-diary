@@ -23,3 +23,10 @@ setInterval(renderHome, 30000);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) renderHome();
 });
+
+// Офлайн-режим: регистрируем помощника, который сохраняет файлы приложения
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}

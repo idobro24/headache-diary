@@ -24,6 +24,27 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) renderHome();
 });
 
+// iOS: при запуске с экрана «Домой» Safari иногда сначала неверно считает высоту экрана,
+// и нижняя панель «подпрыгивает». Заставляем браузер пересчитать её положение,
+// когда размеры экрана окончательно известны.
+function refreshTabbar() {
+  const bar = document.querySelector('.tabbar');
+  bar.style.display = 'none';
+  void bar.offsetHeight; // принудительный пересчёт раскладки
+  bar.style.display = '';
+}
+
+window.addEventListener('load', () => {
+  [0, 100, 400, 1000].forEach(ms => setTimeout(refreshTabbar, ms));
+});
+window.addEventListener('pageshow', refreshTabbar);
+window.addEventListener('resize', refreshTabbar);
+window.addEventListener('orientationchange', () => setTimeout(refreshTabbar, 300));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', refreshTabbar);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) setTimeout(refreshTabbar, 100);
+});
+
 // Офлайн-режим: регистрируем помощника, который сохраняет файлы приложения
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

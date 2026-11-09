@@ -386,7 +386,14 @@ function renderSounds() {
   });
 }
 
+// Закрашенная часть ползунка громкости
+function paintVolume() {
+  $('volume').style.setProperty('--fill', (Number($('volume').value) * 100) + '%');
+}
+paintVolume();
+
 $('volume').addEventListener('input', e => {
+  paintVolume();
   if (!gainNode || !noiseSource) return;
   const now = audioCtx.currentTime;
   gainNode.gain.cancelScheduledValues(now);

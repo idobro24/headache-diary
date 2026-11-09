@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Дневник">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <main id="app">
@@ -60,7 +60,7 @@
         </details>
 
         <label class="toggle-row"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 11</p>
+        <p class="version">Версия 12</p>
       </div>
     </section>
 
@@ -90,6 +90,15 @@
 
         <h2 class="section-title">Статистика месяца</h2>
         <div id="stats"></div>
+
+        <h2 class="section-title">Данные</h2>
+        <div class="data-actions">
+          <button class="ghost-button" id="btn-report">Отчёт для врача</button>
+          <button class="ghost-button" id="btn-backup">Сохранить резервную копию</button>
+          <label class="ghost-button" for="restore-file">Восстановить из копии</label>
+          <input class="file-input" type="file" id="restore-file" accept=".json,application/json">
+          <p class="hint-small" id="backup-status"></p>
+        </div>
       </div>
     </section>
   </main>
@@ -156,10 +165,27 @@
     </div>
   </div>
 
-  <script src="storage.js?v=11"></script>
-  <script src="logger.js?v=11"></script>
-  <script src="help.js?v=11"></script>
-  <script src="history.js?v=11"></script>
-  <script src="app.js?v=11"></script>
+  <!-- Отчёт для врача -->
+  <div class="sheet" id="report-sheet" hidden>
+    <div class="sheet-content">
+      <div class="report-controls">
+        <p class="sheet-label">Отчёт для врача</p>
+        <div class="chips center" id="report-period"></div>
+      </div>
+      <div class="report" id="report-body"></div>
+      <div class="report-controls">
+        <button class="primary-button" id="report-share">Поделиться файлом</button>
+        <button class="ghost-button" id="report-print">Печать или PDF</button>
+        <button class="ghost-button" id="report-close">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="storage.js?v=12"></script>
+  <script src="logger.js?v=12"></script>
+  <script src="help.js?v=12"></script>
+  <script src="history.js?v=12"></script>
+  <script src="report.js?v=12"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>

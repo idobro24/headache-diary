@@ -7,11 +7,15 @@ function showScreen(name) {
   tabs.forEach(t => t.classList.toggle('active', t.dataset.screen === name));
   window.scrollTo(0, 0);
   if (name === 'help') helpShown(); else helpHidden();
+  if (name === 'history') renderHistory();
 }
 
 tabs.forEach(tab => {
   tab.addEventListener('click', () => showScreen(tab.dataset.screen));
 });
+
+// Запоминаем день начала дневника
+Store.firstUse();
 
 // Обновляем главный экран при запуске, каждые 30 секунд и при возврате в приложение
 renderHome();

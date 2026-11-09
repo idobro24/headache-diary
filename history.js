@@ -157,6 +157,8 @@ function episodeCard(ep) {
   if (opt) parts.push(opt.emoji + ' ' + opt.label);
   parts.push(formatDuration((end || new Date()) - start));
   if (ep.meds.length) parts.push(ep.meds.map(m => m.name).join(', '));
+  if (ep.impact === 'reduced') parts.push('дела через силу');
+  if (ep.impact === 'missed') parts.push('дела отменены');
   meta.textContent = parts.join('. ');
 
   card.append(title, meta);
@@ -262,6 +264,15 @@ function renderStats(all, monthEpisodes) {
   );
   box.appendChild(grid);
 
+  // Влияние на жизнь: дни, когда пришлось отменить дела или делать их через силу
+  const impactDays = impactByDay(monthEpisodes, d => d.getFullYear() === viewYear && d.getMonth() === viewMonth);
+  if (impactDays.missed + impactDays.reduced > 0) {
+    box.appendChild(statBlock('Влияние на жизнь', [
+      'Пришлось отменить дела: ' + impactDays.missed + ' ' + daysWord(impactDays.missed),
+      'Дела через силу: ' + impactDays.reduced + ' ' + daysWord(impactDays.reduced)
+    ]));
+  }
+
   // Дни с обезболивающими за последние 30 дней
   const since = Date.now() - 30 * DAY_MS;
   const medDays = new Set();
@@ -302,6 +313,24 @@ function renderStats(all, monthEpisodes) {
   const effLines = Object.entries(eff).map(([name, c]) =>
     name + ': помогло ' + c.yes + ', частично ' + c.partly + ', не помогло ' + c.no);
   if (effLines.length) box.appendChild(statBlock('Как помогают лекарства', effLines));
+}
+
+// Для каждого дня берём самое сильное влияние: отменённые дела важнее «через силу»
+function impactByDay(episodes, dayFilter) {
+  const rank = { none: 0, reduced: 1, missed: 2 };
+  const days = {};
+  episodes.forEach(ep => {
+    if (!ep.impact) return;
+    episodeDays(ep).forEach(k => {
+      if (!dayFilter(keyToDate(k))) return;
+      if (!(k in days) || rank[ep.impact] > rank[days[k]]) days[k] = ep.impact;
+    });
+  });
+  const values = Object.values(days);
+  return {
+    missed: values.filter(v => v === 'missed').length,
+    reduced: values.filter(v => v === 'reduced').length
+  };
 }
 
 // --- Сборка экрана ---

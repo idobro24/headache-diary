@@ -192,11 +192,11 @@ function bpReportSection(from, now, episodes) {
   html += '<tr><th>В дни без головной боли</th><td>' + avgText(sum.painFree) + '</td></tr>';
   html += '</table></div>';
   html += '<div class="table-wrap"><table class="r-episodes">' +
-          '<tr><th>Дата</th><th>Время</th><th>Давление</th><th>Пульс</th><th>Во время приступа</th></tr>';
+          '<tr><th>Дата</th><th>Время</th><th>Давление</th><th>Пульс</th><th>Приступ</th></tr>';
   list.forEach(m => {
     html += '<tr><td>' + fullDate(new Date(m.time)) + '</td><td>' + timeOf(m.time) + '</td>' +
             '<td>' + m.sys + '/' + m.dia + '</td><td>' + (m.pulse || '—') + '</td>' +
-            '<td>' + (episodeAt(m.time, allEpisodes) ? 'да' : '—') + '</td></tr>';
+            '<td>' + ({ start: 'в начале', during: 'во время', end: 'в конце' }[bpPhase(m, allEpisodes)] || '—') + '</td></tr>';
   });
   html += '</table></div>';
   return html;
@@ -412,7 +412,8 @@ $('restore-file').addEventListener('change', async e => {
       time: new Date(m.time).toISOString(),
       sys: m.sys,
       dia: m.dia,
-      pulse: Number.isInteger(m.pulse) ? m.pulse : null
+      pulse: Number.isInteger(m.pulse) ? m.pulse : null,
+      ...(m.phase === 'start' || m.phase === 'end' ? { phase: m.phase } : {})
     }));
     Store.saveBP([...bpExisting, ...bpNew]);
     bpAdded = bpNew.length;

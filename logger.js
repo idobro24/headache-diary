@@ -356,20 +356,48 @@ $('lg-time').addEventListener('change', e => {
   const d = new Date();
   d.setHours(h, m, 0, 0);
   if (d > new Date()) d.setDate(d.getDate() - 1); // началось вчера вечером
-  current.start = d.toISOString();
-  Store.upsert(current);
-});
-
-// Начало и конец завершённого приступа
-$('lg-start-dt').addEventListener('change', e => {
-  const d = parseLocalInput(e.target.value);
-  if (!d || d > new Date() || d >= new Date(current.end)) {
-    alert('Начало должно быть раньше конца приступа и не в будущем.');
-    e.target.value = toLocalInput(current.start);
+  if (overlapsEpisode(d, new Date(), current.id)) {
+    alert(OVERLAP_TEXT);
+    e.target.value = timeOf(current.start);
     return;
   }
   current.start = d.toISOString();
   Store.upsert(current);
+  renderLoggerBP(current);
+});
+
+// Пересекается ли интервал с другим приступом
+function overlapsEpisode(start, end, exceptId) {
+  return Store.load().some(ep =>
+    ep.id !== exceptId &&
+    new Date(ep.start) < end &&
+    (ep.end ? new Date(ep.end) : new Date()) > start);
+}
+
+const OVERLAP_TEXT = 'В это время уже записан другой приступ. Выберите другое время.';
+
+// Начало завершённого приступа: весь приступ сдвигается целиком, длительность сохраняется
+$('lg-start-dt').addEventListener('change', e => {
+  const d = parseLocalInput(e.target.value);
+  const now = new Date();
+  if (!d || d >= now) {
+    alert('Начало приступа не может быть в будущем.');
+    e.target.value = toLocalInput(current.start);
+    return;
+  }
+  const duration = new Date(current.end) - new Date(current.start);
+  let end = new Date(d.getTime() + duration);
+  if (end > now) end = now;
+  if (overlapsEpisode(d, end, current.id)) {
+    alert(OVERLAP_TEXT);
+    e.target.value = toLocalInput(current.start);
+    return;
+  }
+  current.start = d.toISOString();
+  current.end = end.toISOString();
+  $('lg-end-dt').value = toLocalInput(current.end);
+  Store.upsert(current);
+  renderLoggerBP(current);
 });
 
 $('lg-end-dt').addEventListener('change', e => {
@@ -379,8 +407,14 @@ $('lg-end-dt').addEventListener('change', e => {
     e.target.value = toLocalInput(current.end);
     return;
   }
+  if (overlapsEpisode(new Date(current.start), d, current.id)) {
+    alert(OVERLAP_TEXT);
+    e.target.value = toLocalInput(current.end);
+    return;
+  }
   current.end = d.toISOString();
   Store.upsert(current);
+  renderLoggerBP(current);
 });
 
 $('lg-note').addEventListener('input', e => {

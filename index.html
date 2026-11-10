@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Тише">
-  <link rel="stylesheet" href="style.css?v=29">
+  <link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
   <main id="app">
@@ -69,7 +69,7 @@
 
         <label class="toggle-row"><input type="checkbox" id="dim-mode"> Темнее тёмного</label>
         <label class="toggle-row toggle-next"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 29</p>
+        <p class="version">Версия 31</p>
       </div>
     </section>
 
@@ -114,9 +114,9 @@
       <div class="bp">
         <h1 class="month-title">Давление</h1>
         <div class="bp-form">
-          <label class="bp-field">Верхнее<input type="number" inputmode="numeric" id="bp-sys" placeholder="120"></label>
-          <label class="bp-field">Нижнее<input type="number" inputmode="numeric" id="bp-dia" placeholder="80"></label>
-          <label class="bp-field">Пульс<input type="number" inputmode="numeric" id="bp-pulse" placeholder="70"></label>
+          <label class="bp-field">Верхнее<input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="bp-sys" placeholder="120"></label>
+          <label class="bp-field">Нижнее<input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="bp-dia" placeholder="80"></label>
+          <label class="bp-field">Пульс<input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="bp-pulse" placeholder="70"></label>
         </div>
         <label class="range-row bp-time-row">Время <input type="datetime-local" id="bp-time"></label>
         <button class="primary-button" id="bp-save">Сохранить замер</button>
@@ -180,9 +180,9 @@
       <h2 class="section-title">Давление</h2>
       <div id="lg-bp-list"></div>
       <div class="med-row">
-        <input type="number" inputmode="numeric" id="lg-bp-sys" placeholder="Верхнее">
-        <input type="number" inputmode="numeric" id="lg-bp-dia" placeholder="Нижнее">
-        <input type="number" inputmode="numeric" id="lg-bp-pulse" placeholder="Пульс">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="lg-bp-sys" placeholder="Верхнее">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="lg-bp-dia" placeholder="Нижнее">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="lg-bp-pulse" placeholder="Пульс">
         <button class="small-button" id="lg-bp-add" aria-label="Добавить замер">+</button>
       </div>
       <div id="lg-bp-msg" hidden></div>
@@ -221,9 +221,9 @@
       <div class="end-bp">
         <p>Давление сейчас, если измеряли</p>
         <div class="med-row">
-          <input type="number" inputmode="numeric" id="end-bp-sys" placeholder="Верхнее">
-          <input type="number" inputmode="numeric" id="end-bp-dia" placeholder="Нижнее">
-          <input type="number" inputmode="numeric" id="end-bp-pulse" placeholder="Пульс">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="end-bp-sys" placeholder="Верхнее">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="end-bp-dia" placeholder="Нижнее">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="3" class="bp-input" id="end-bp-pulse" placeholder="Пульс">
         </div>
         <div id="end-bp-msg" hidden></div>
       </div>
@@ -312,14 +312,14 @@
     </div>
   </div>
 
-  <script src="storage.js?v=29"></script>
-  <script src="logger.js?v=29"></script>
-  <script src="help.js?v=29"></script>
-  <script src="history.js?v=29"></script>
-  <script src="report.js?v=29"></script>
-  <script src="message.js?v=29"></script>
-  <script src="info.js?v=29"></script>
-  <script src="bp.js?v=29"></script>
-  <script src="app.js?v=29"></script>
+  <script src="storage.js?v=31"></script>
+  <script src="logger.js?v=31"></script>
+  <script src="help.js?v=31"></script>
+  <script src="history.js?v=31"></script>
+  <script src="report.js?v=31"></script>
+  <script src="message.js?v=31"></script>
+  <script src="info.js?v=31"></script>
+  <script src="bp.js?v=31"></script>
+  <script src="app.js?v=31"></script>
 </body>
 </html>

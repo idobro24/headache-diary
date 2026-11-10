@@ -735,6 +735,10 @@ input[type="number"] { -moz-appearance: textfield; }
 .modal-card .primary-button { margin-top: 24px; }
 #bm-later { display: block; margin: 16px auto 4px; }
 #bm-done { padding-bottom: 8px; }
+.news-card { max-height: 85vh; overflow-y: auto; }
+.news-list { margin: 16px 0 0 18px; text-align: left; font-size: 15px; line-height: 1.5; }
+.news-list li + li { margin-top: 8px; }
+#news-ok { display: block; margin: 16px auto 4px; }
 
 /* iOS 26, приложение с экрана «Домой»: панель отсчитываем от верха экрана (см. app.js) */
 .ios-standalone .tabbar {

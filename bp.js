@@ -256,15 +256,15 @@ function renderLoggerBP(ep) {
     .forEach(m => list.appendChild(bpRow(m, episodes, () => renderLoggerBP(ep))));
 }
 
-// Добавить замер из записи приступа.
-// Возвращает false, только если поля заполнены с ошибкой (чтобы не закрывать запись и не потерять ввод)
-function addPendingLoggerBP() {
-  if (!current) return true;
-  const sysText = $('lg-bp-sys').value.trim();
-  const diaText = $('lg-bp-dia').value.trim();
-  const pulseText = $('lg-bp-pulse').value.trim();
-  if (!sysText && !diaText && !pulseText) return true; // ничего не вводили
-  const msg = $('lg-bp-msg');
+// Замер из трёх полей (prefix-sys, prefix-dia, prefix-pulse) с сообщением в prefix-msg.
+// Возвращает false, если поля заполнены с ошибкой или давление очень высокое:
+// тогда окно не закрываем, чтобы сообщение точно увидели. Пустые поля — это не ошибка.
+function addBPFromFields(prefix, time, afterSave) {
+  const sysText = $(prefix + '-sys').value.trim();
+  const diaText = $(prefix + '-dia').value.trim();
+  const pulseText = $(prefix + '-pulse').value.trim();
+  if (!sysText && !diaText && !pulseText) return true;
+  const msg = $(prefix + '-msg');
   const r = readBP(sysText, diaText, pulseText);
   if (r.error) {
     msg.className = 'bp-ok';
@@ -272,14 +272,12 @@ function addPendingLoggerBP() {
     msg.hidden = false;
     return false;
   }
-  // у идущего приступа замер «сейчас», у прошлого — время начала
-  const time = current.end ? current.start : new Date().toISOString();
   const m = { id: bpId(), time, sys: r.sys, dia: r.dia, pulse: r.pulse };
   Store.addBP(m);
-  $('lg-bp-sys').value = '';
-  $('lg-bp-dia').value = '';
-  $('lg-bp-pulse').value = '';
-  renderLoggerBP(current);
+  $(prefix + '-sys').value = '';
+  $(prefix + '-dia').value = '';
+  $(prefix + '-pulse').value = '';
+  if (afterSave) afterSave();
   if (isVeryHighBP(m)) {
     msg.className = 'bp-warning';
     msg.innerHTML = '';
@@ -291,7 +289,7 @@ function addPendingLoggerBP() {
     call.textContent = 'Позвонить в скорую: 103';
     msg.append(p, call);
     msg.hidden = false;
-    return false; // запись не закрываем, чтобы предупреждение точно увидели
+    return false;
   }
   msg.className = 'bp-ok';
   msg.textContent = 'Замер сохранён 🌿';
@@ -299,4 +297,21 @@ function addPendingLoggerBP() {
   return true;
 }
 
+// Замер из записи приступа: у идущего приступа «сейчас», у прошлого — время начала
+function addPendingLoggerBP() {
+  if (!current) return true;
+  const time = current.end ? current.start : new Date().toISOString();
+  return addBPFromFields('lg-bp', time, () => renderLoggerBP(current));
+}
+
 $('lg-bp-add').addEventListener('click', addPendingLoggerBP);
+
+// Замер при завершении приступа
+function resetEndBP() {
+  ['sys', 'dia', 'pulse'].forEach(k => { $('end-bp-' + k).value = ''; });
+  $('end-bp-msg').hidden = true;
+}
+
+function addPendingEndBP() {
+  return addBPFromFields('end-bp', new Date().toISOString());
+}

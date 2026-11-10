@@ -314,7 +314,7 @@ function shouldRemindBackup() {
 }
 
 function checkBackupReminder() {
-  if (document.hidden || !$('backup-modal').hidden) return;
+  if (document.hidden || !$('backup-modal').hidden || !$('news-modal').hidden) return;
   if (!shouldRemindBackup()) return;
   $('bm-ask').hidden = false;
   $('bm-done').hidden = true;
@@ -413,7 +413,8 @@ $('restore-file').addEventListener('change', async e => {
       sys: m.sys,
       dia: m.dia,
       pulse: Number.isInteger(m.pulse) ? m.pulse : null,
-      ...(['start', 'during', 'end'].includes(m.phase) ? { phase: m.phase } : {})
+      ...(['start', 'during', 'end'].includes(m.phase) ? { phase: m.phase } : {}),
+      ...(typeof m.episodeId === 'string' ? { episodeId: m.episodeId } : {})
     }));
     Store.saveBP([...bpExisting, ...bpNew]);
     bpAdded = bpNew.length;

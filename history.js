@@ -371,21 +371,22 @@ $('show-month').addEventListener('click', () => {
   renderHistory();
 });
 
-// Добавить прошлый приступ: на выбранный день или на последний час
+// Добавить прошлый приступ: на выбранный день (или вчера), в свободное время,
+// чтобы не пересечься с уже записанными приступами и не «забрать» их замеры давления
 $('btn-add-past').addEventListener('click', () => {
   const now = new Date();
-  let start, end;
-  if (selectedDay) {
-    start = keyToDate(selectedDay);
-    start.setHours(12, 0, 0, 0);
-    end = new Date(start.getTime() + 2 * 3600000);
-  } else {
-    end = new Date(now);
-    start = new Date(now.getTime() - 3600000);
+  const day = selectedDay ? keyToDate(selectedDay) : startOfDay(new Date(now.getTime() - DAY_MS));
+  let start = null, end = null;
+  for (const h of [12, 9, 15, 18, 6, 21, 3]) {
+    const s = new Date(day);
+    s.setHours(h, 0, 0, 0);
+    const e = new Date(s.getTime() + 2 * 3600000);
+    if (e > now) continue;
+    if (!overlapsEpisode(s, e, null)) { start = s; end = e; break; }
   }
-  if (end > now) {
-    end = new Date(now);
-    start = new Date(now.getTime() - 3600000);
+  if (!start) {
+    alert('В этот день не нашлось свободного времени для нового приступа. Выберите в календаре другой день.');
+    return;
   }
   openLogger(Store.createPast(start, end), false);
 });

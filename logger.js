@@ -253,6 +253,12 @@ function refreshScreens() {
 }
 
 function closeLogger() {
+  // Давление, вписанное без нажатия «+», тоже сохраняем.
+  // Если в нём ошибка или оно очень высокое, запись не закрываем, чтобы сообщение увидели
+  if (!addPendingLoggerBP()) {
+    $('lg-bp-msg').scrollIntoView({ block: 'center' });
+    return;
+  }
   addPendingMed(); // если лекарство вписано, но «+» не нажат
   $('logger').hidden = true;
   const goHelp = openedFromStart;

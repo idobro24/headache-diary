@@ -34,17 +34,17 @@ const HIGH_BP_TEXT =
   'Очень высокое давление. Если вместе с ним сильная головная боль, нарушение зрения или речи, ' +
   'слабость в руке или ноге, боль в груди или одышка, срочно вызовите скорую.';
 
-// Приступ, во время которого сделан замер
-function episodeAt(time, episodes) {
-  const t = new Date(time);
-  return episodes.find(ep => new Date(ep.start) <= t && t <= (ep.end ? new Date(ep.end) : new Date())) || null;
+// Приступ, к которому относится замер. Связь явная: замер хранит id приступа,
+// поэтому новая запись о прошлом приступе не «подхватывает» чужие замеры по времени
+function episodeOf(m, episodes) {
+  return m.episodeId ? episodes.find(ep => ep.id === m.episodeId) || null : null;
 }
 
 // Когда сделан замер относительно приступа.
 // Правило: первый замер приступа — «в начале», замер из окна «Приступ закончился?» — «в конце»,
 // все остальные — «во время».
 function bpPhase(m, episodes) {
-  const ep = episodeAt(m.time, episodes);
+  const ep = episodeOf(m, episodes);
   if (!ep) return null;
   if (m.phase) return m.phase;
   // Для старых замеров без пометки определяем по порядку
@@ -55,19 +55,17 @@ function bpPhase(m, episodes) {
   return 'during';
 }
 
-// Замеры, сделанные во время приступа, по порядку
+// Замеры приступа по порядку
 function measurementsOf(ep, list) {
-  const s = new Date(ep.start), e = ep.end ? new Date(ep.end) : new Date();
   return list
-    .filter(m => { const t = new Date(m.time); return s <= t && t <= e; })
+    .filter(m => m.episodeId === ep.id)
     .sort((a, b) => new Date(a.time) - new Date(b.time));
 }
 
 // Пометка для нового замера: первый в приступе — начало, следующие — во время
-function phaseForNew(time) {
-  const ep = episodeAt(time, Store.load());
-  if (!ep) return null;
-  return measurementsOf(ep, Store.loadBP()).length ? 'during' : 'start';
+function phaseForNew(episodeId) {
+  if (!episodeId) return null;
+  return Store.loadBP().some(m => m.episodeId === episodeId) ? 'during' : 'start';
 }
 
 const PHASE_LABEL = { start: 'В начале приступа', during: 'Во время приступа', end: 'В конце приступа' };
@@ -113,7 +111,7 @@ function bpSummary(measurements, episodes) {
   const painDays = painDayKeys(episodes);
   return {
     all: avgBP(measurements),
-    during: avgBP(measurements.filter(m => episodeAt(m.time, episodes))),
+    during: avgBP(measurements.filter(m => episodeOf(m, episodes))),
     painFree: avgBP(measurements.filter(m => !painDays.has(dayKey(new Date(m.time)))))
   };
 }
@@ -180,7 +178,7 @@ function renderBPChart(list, episodes) {
     svg += '<polyline class="line-' + key + '" points="' +
            points.map(m => x(m.time).toFixed(1) + ',' + y(m[key]).toFixed(1)).join(' ') + '"/>';
     points.forEach(m => {
-      const pain = episodeAt(m.time, episodes) ? ' pain' : '';
+      const pain = episodeOf(m, episodes) ? ' pain' : '';
       svg += '<circle class="dot-' + key + pain + '" cx="' + x(m.time).toFixed(1) + '" cy="' + y(m[key]).toFixed(1) + '" r="3"/>';
     });
   });
@@ -263,13 +261,16 @@ $('bp-save').addEventListener('click', () => {
     return;
   }
   const m = { id: bpId(), time: time.toISOString(), sys: r.sys, dia: r.dia, pulse: r.pulse };
-  const p = phaseForNew(m.time);
-  if (p) m.phase = p;
+  const active = Store.active();
+  if (active && !bpTimeEdited) {
+    m.episodeId = active.id;
+    m.phase = phaseForNew(active.id);
+  }
   Store.addBP(m);
   resetBPForm();
   renderBP();
   if (isVeryHighBP(m)) showBPMessage('Замер ' + bpText(m) + ' сохранён. ' + HIGH_BP_TEXT, true);
-  else if (episodeAt(m.time, Store.load())) showBPMessage('Замер ' + bpText(m) + ' сохранён и добавлен к приступу 🌿', false);
+  else if (m.episodeId) showBPMessage('Замер ' + bpText(m) + ' сохранён и добавлен к приступу 🌿', false);
   else showBPMessage('Замер ' + bpText(m) + ' сохранён 🌿', false);
 });
 
@@ -288,19 +289,14 @@ function renderLoggerBP(ep) {
   list.innerHTML = '';
   $('lg-bp-msg').hidden = true;
   const episodes = Store.load();
-  Store.loadBP()
-    .filter(m => {
-      const t = new Date(m.time);
-      return new Date(ep.start) <= t && t <= (ep.end ? new Date(ep.end) : new Date());
-    })
-    .sort((a, b) => new Date(a.time) - new Date(b.time))
+  measurementsOf(ep, Store.loadBP())
     .forEach(m => list.appendChild(bpRow(m, episodes, () => renderLoggerBP(ep))));
 }
 
 // Замер из трёх полей (prefix-sys, prefix-dia, prefix-pulse) с сообщением в prefix-msg.
 // Возвращает false, если поля заполнены с ошибкой или давление очень высокое:
 // тогда окно не закрываем, чтобы сообщение точно увидели. Пустые поля — это не ошибка.
-function addBPFromFields(prefix, time, afterSave, phase) {
+function addBPFromFields(prefix, time, afterSave, phase, episodeId) {
   const sysText = $(prefix + '-sys').value.trim();
   const diaText = $(prefix + '-dia').value.trim();
   const pulseText = $(prefix + '-pulse').value.trim();
@@ -314,8 +310,10 @@ function addBPFromFields(prefix, time, afterSave, phase) {
     return false;
   }
   const m = { id: bpId(), time, sys: r.sys, dia: r.dia, pulse: r.pulse };
-  const p = phase || phaseForNew(time);
-  if (p) m.phase = p;
+  if (episodeId) {
+    m.episodeId = episodeId;
+    m.phase = phase || phaseForNew(episodeId);
+  }
   Store.addBP(m);
   $(prefix + '-sys').value = '';
   $(prefix + '-dia').value = '';
@@ -343,8 +341,17 @@ function addBPFromFields(prefix, time, afterSave, phase) {
 // Замер из записи приступа: у идущего приступа «сейчас», у прошлого — время начала
 function addPendingLoggerBP() {
   if (!current) return true;
+  if (current.draft) {
+    const filled = ['sys', 'dia', 'pulse'].some(k => $('lg-bp-' + k).value.trim());
+    if (!filled) return true;
+    const msg = $('lg-bp-msg');
+    msg.className = 'bp-ok';
+    msg.textContent = 'Сначала укажите начало и конец приступа, потом добавьте давление.';
+    msg.hidden = false;
+    return false;
+  }
   const time = current.end ? current.start : new Date().toISOString();
-  return addBPFromFields('lg-bp', time, () => renderLoggerBP(current));
+  return addBPFromFields('lg-bp', time, () => renderLoggerBP(current), null, current.id);
 }
 
 $('lg-bp-add').addEventListener('click', addPendingLoggerBP);
@@ -356,7 +363,7 @@ function resetEndBP() {
 }
 
 function addPendingEndBP() {
-  return addBPFromFields('end-bp', new Date().toISOString(), null, 'end');
+  return addBPFromFields('end-bp', new Date().toISOString(), null, 'end', current ? current.id : null);
 }
 
 // Поля давления: только цифры, а курсор при касании всегда в конце введённого числа,

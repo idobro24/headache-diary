@@ -302,6 +302,7 @@ function openEndSheet() {
     box.appendChild(block);
   });
   renderImpact(ep, 'end');
+  resetEndBP();
   $('end-sheet').hidden = false;
 }
 
@@ -401,6 +402,8 @@ $('lg-delete').addEventListener('click', () => {
 });
 
 $('end-yes').addEventListener('click', () => {
+  // Давление в конце приступа: при ошибке или очень высоком значении окно не закрываем
+  if (!addPendingEndBP()) return;
   current.end = new Date().toISOString();
   Store.upsert(current);
   current = null;

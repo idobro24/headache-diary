@@ -643,13 +643,56 @@ body::after {
   pointer-events: none;
 }
 
+/* Метка тестовой версии */
+.test-badge {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(190, 150, 86, 0.85);
+  color: #1E2219;
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* ===== Мягкое окно-напоминание ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 12, 9, 0.6);
+}
+.modal-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 24px 20px;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  text-align: center;
+}
+.modal-title { font-size: 22px; font-weight: 300; }
+.modal-text { margin-top: 12px; font-size: 16px; line-height: 1.5; color: var(--text-muted); }
+.modal-card .primary-button { margin-top: 24px; }
+#bm-later { display: block; margin: 16px auto 4px; }
+#bm-done { padding-bottom: 8px; }
+
 /* iOS 26, приложение с экрана «Домой»: панель отсчитываем от верха экрана (см. app.js) */
 .ios-standalone .tabbar {
   top: calc(var(--screen-h) - var(--tabbar-height) - env(safe-area-inset-bottom));
   bottom: auto;
 }
 .ios-standalone .screen { min-height: var(--screen-h); }
-.ios-standalone .sheet { bottom: auto; height: var(--screen-h); }
+.ios-standalone .sheet,
+.ios-standalone .modal { bottom: auto; height: var(--screen-h); }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

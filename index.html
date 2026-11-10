@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Тише">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
   <main id="app">
@@ -69,7 +69,7 @@
 
         <label class="toggle-row"><input type="checkbox" id="dim-mode"> Темнее тёмного</label>
         <label class="toggle-row toggle-next"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 34</p>
+        <p class="version">Версия 35</p>
       </div>
     </section>
 
@@ -232,6 +232,17 @@
     </div>
   </div>
 
+  <!-- Что нового после обновления -->
+  <div class="modal" id="news-modal" hidden>
+    <div class="modal-card news-card">
+      <p class="modal-title" id="news-title"></p>
+      <ul class="news-list" id="news-list"></ul>
+      <p class="modal-text" id="news-backup"></p>
+      <button class="primary-button" id="news-save">Сохранить копию</button>
+      <button class="link-inline" id="news-ok">Понятно</button>
+    </div>
+  </div>
+
   <!-- Еженедельное напоминание о резервной копии -->
   <div class="modal" id="backup-modal" hidden>
     <div class="modal-card">
@@ -312,14 +323,15 @@
     </div>
   </div>
 
-  <script src="storage.js?v=34"></script>
-  <script src="logger.js?v=34"></script>
-  <script src="help.js?v=34"></script>
-  <script src="history.js?v=34"></script>
-  <script src="report.js?v=34"></script>
-  <script src="message.js?v=34"></script>
-  <script src="info.js?v=34"></script>
-  <script src="bp.js?v=34"></script>
-  <script src="app.js?v=34"></script>
+  <script src="storage.js?v=35"></script>
+  <script src="logger.js?v=35"></script>
+  <script src="help.js?v=35"></script>
+  <script src="history.js?v=35"></script>
+  <script src="report.js?v=35"></script>
+  <script src="message.js?v=35"></script>
+  <script src="info.js?v=35"></script>
+  <script src="bp.js?v=35"></script>
+  <script src="news.js?v=35"></script>
+  <script src="app.js?v=35"></script>
 </body>
 </html>

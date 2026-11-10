@@ -14,6 +14,15 @@ tabs.forEach(tab => {
   tab.addEventListener('click', () => showScreen(tab.dataset.screen));
 });
 
+// Тестовая версия: на любом адресе, кроме основного сайта, показываем метку «Тест»,
+// чтобы не перепутать тестовое приложение с настоящим
+if (!location.hostname.endsWith('github.io')) {
+  const badge = document.createElement('div');
+  badge.className = 'test-badge';
+  badge.textContent = 'Тестовая версия';
+  document.body.appendChild(badge);
+}
+
 // Запоминаем день начала дневника
 Store.firstUse();
 

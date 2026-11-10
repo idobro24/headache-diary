@@ -40,6 +40,19 @@ function episodeAt(time, episodes) {
   return episodes.find(ep => new Date(ep.start) <= t && t <= (ep.end ? new Date(ep.end) : new Date())) || null;
 }
 
+// Когда сделан замер относительно приступа: в начале, во время, в конце или вне приступа
+function bpPhase(m, episodes) {
+  const ep = episodeAt(m.time, episodes);
+  if (!ep) return null;
+  if (m.phase === 'start' || m.phase === 'end') return m.phase;
+  const t = new Date(m.time).getTime();
+  if (Math.abs(t - new Date(ep.start).getTime()) < 2 * 60000) return 'start';
+  if (ep.end && Math.abs(t - new Date(ep.end).getTime()) < 2 * 60000) return 'end';
+  return 'during';
+}
+
+const PHASE_LABEL = { start: 'В начале приступа', during: 'Во время приступа', end: 'В конце приступа' };
+
 function bpText(m) {
   return m.sys + '/' + m.dia + (m.pulse ? ', пульс ' + m.pulse : '');
 }
@@ -197,8 +210,9 @@ function bpRow(m, episodes, onDelete) {
   const meta = document.createElement('div');
   meta.className = 'ep-meta';
   const d = new Date(m.time);
+  const phase = bpPhase(m, episodes);
   meta.textContent = dateLabel(d) + ', ' + timeOf(m.time) +
-    (episodeAt(m.time, episodes) ? '. Во время приступа' : '') +
+    (phase ? '. ' + PHASE_LABEL[phase] : '') +
     (isVeryHighBP(m) ? '. Очень высокое' : '');
   info.append(main, meta);
   const del = document.createElement('button');
@@ -229,9 +243,9 @@ $('bp-save').addEventListener('click', () => {
   Store.addBP(m);
   resetBPForm();
   renderBP();
-  if (isVeryHighBP(m)) showBPMessage(HIGH_BP_TEXT, true);
-  else if (episodeAt(m.time, Store.load())) showBPMessage('Сохранено. Замер добавлен к приступу 🌿', false);
-  else showBPMessage('Сохранено 🌿', false);
+  if (isVeryHighBP(m)) showBPMessage('Замер ' + bpText(m) + ' сохранён. ' + HIGH_BP_TEXT, true);
+  else if (episodeAt(m.time, Store.load())) showBPMessage('Замер ' + bpText(m) + ' сохранён и добавлен к приступу 🌿', false);
+  else showBPMessage('Замер ' + bpText(m) + ' сохранён 🌿', false);
 });
 
 function bpShown() {
@@ -259,7 +273,7 @@ function renderLoggerBP(ep) {
 // Замер из трёх полей (prefix-sys, prefix-dia, prefix-pulse) с сообщением в prefix-msg.
 // Возвращает false, если поля заполнены с ошибкой или давление очень высокое:
 // тогда окно не закрываем, чтобы сообщение точно увидели. Пустые поля — это не ошибка.
-function addBPFromFields(prefix, time, afterSave) {
+function addBPFromFields(prefix, time, afterSave, phase) {
   const sysText = $(prefix + '-sys').value.trim();
   const diaText = $(prefix + '-dia').value.trim();
   const pulseText = $(prefix + '-pulse').value.trim();
@@ -273,6 +287,7 @@ function addBPFromFields(prefix, time, afterSave) {
     return false;
   }
   const m = { id: bpId(), time, sys: r.sys, dia: r.dia, pulse: r.pulse };
+  if (phase) m.phase = phase;
   Store.addBP(m);
   $(prefix + '-sys').value = '';
   $(prefix + '-dia').value = '';
@@ -282,7 +297,7 @@ function addBPFromFields(prefix, time, afterSave) {
     msg.className = 'bp-warning';
     msg.innerHTML = '';
     const p = document.createElement('p');
-    p.textContent = HIGH_BP_TEXT;
+    p.textContent = 'Замер ' + bpText(m) + ' сохранён. ' + HIGH_BP_TEXT;
     const call = document.createElement('a');
     call.className = 'call-button';
     call.href = 'tel:103';
@@ -292,7 +307,7 @@ function addBPFromFields(prefix, time, afterSave) {
     return false;
   }
   msg.className = 'bp-ok';
-  msg.textContent = 'Замер сохранён 🌿';
+  msg.textContent = 'Замер ' + bpText(m) + ' сохранён 🌿';
   msg.hidden = false;
   return true;
 }
@@ -301,7 +316,7 @@ function addBPFromFields(prefix, time, afterSave) {
 function addPendingLoggerBP() {
   if (!current) return true;
   const time = current.end ? current.start : new Date().toISOString();
-  return addBPFromFields('lg-bp', time, () => renderLoggerBP(current));
+  return addBPFromFields('lg-bp', time, () => renderLoggerBP(current), current.end ? 'start' : null);
 }
 
 $('lg-bp-add').addEventListener('click', addPendingLoggerBP);
@@ -313,5 +328,5 @@ function resetEndBP() {
 }
 
 function addPendingEndBP() {
-  return addBPFromFields('end-bp', new Date().toISOString());
+  return addBPFromFields('end-bp', new Date().toISOString(), null, 'end');
 }

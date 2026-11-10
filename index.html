@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Тише">
-  <link rel="stylesheet" href="style.css?v=23">
+  <link rel="stylesheet" href="style.css?v=25">
 </head>
 <body>
   <main id="app">
@@ -69,7 +69,7 @@
 
         <label class="toggle-row"><input type="checkbox" id="dim-mode"> Темнее тёмного</label>
         <label class="toggle-row toggle-next"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 23</p>
+        <p class="version">Версия 25</p>
       </div>
     </section>
 
@@ -191,6 +191,23 @@
     </div>
   </div>
 
+  <!-- Еженедельное напоминание о резервной копии -->
+  <div class="modal" id="backup-modal" hidden>
+    <div class="modal-card">
+      <div id="bm-ask">
+        <p class="modal-title">Сохраню вашу историю 🌿</p>
+        <p class="modal-text">Раз в неделю я собираю все записи в один файл, чтобы они точно не потерялись.
+          Сохраните его в «Файлы» или отправьте себе в Telegram, и можно ни о чём не беспокоиться.</p>
+        <button class="primary-button" id="bm-save">Сохранить копию</button>
+        <button class="link-inline" id="bm-later">Напомнить завтра</button>
+      </div>
+      <div id="bm-done" hidden>
+        <p class="modal-title">Готово 🌿</p>
+        <p class="modal-text">История в безопасности. Отдыхайте.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Как пользоваться -->
   <div class="sheet" id="info-sheet" hidden>
     <div class="sheet-content info">
@@ -251,13 +268,13 @@
     </div>
   </div>
 
-  <script src="storage.js?v=23"></script>
-  <script src="logger.js?v=23"></script>
-  <script src="help.js?v=23"></script>
-  <script src="history.js?v=23"></script>
-  <script src="report.js?v=23"></script>
-  <script src="message.js?v=23"></script>
-  <script src="info.js?v=23"></script>
-  <script src="app.js?v=23"></script>
+  <script src="storage.js?v=25"></script>
+  <script src="logger.js?v=25"></script>
+  <script src="help.js?v=25"></script>
+  <script src="history.js?v=25"></script>
+  <script src="report.js?v=25"></script>
+  <script src="message.js?v=25"></script>
+  <script src="info.js?v=25"></script>
+  <script src="app.js?v=25"></script>
 </body>
 </html>

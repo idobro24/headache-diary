@@ -240,7 +240,8 @@ function renderBackupStatus() {
   el.textContent = 'Последняя копия: ' + fullDate(d) + (old ? '. Пора сделать свежую.' : '.');
 }
 
-$('btn-backup').addEventListener('click', async () => {
+// Сохранить копию: возвращает true, если файл сохранён или отправлен
+async function doBackup() {
   const data = {
     app: 'headache-diary',
     format: 1,
@@ -254,6 +255,60 @@ $('btn-backup').addEventListener('click', async () => {
     try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch (e) {}
     renderBackupStatus();
   }
+  return done;
+}
+
+$('btn-backup').addEventListener('click', doBackup);
+
+// --- Еженедельное напоминание о копии ---
+
+const SNOOZE_KEY = 'hd.backupSnooze';
+const WEEK_MS = 7 * DAY_MS;
+
+function readTime(key) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? new Date(v).getTime() : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function shouldRemindBackup() {
+  const episodes = Store.load();
+  if (!episodes.length) return false;               // сохранять пока нечего
+  if (episodes.some(ep => !ep.end)) return false;   // во время приступа не беспокоим
+  if (document.querySelector('.sheet:not([hidden])')) return false; // открыто другое окно
+  const now = Date.now();
+  if (now < readTime(SNOOZE_KEY)) return false;
+  const last = readTime(BACKUP_KEY) || Store.firstUse().getTime();
+  return now - last >= WEEK_MS;
+}
+
+function checkBackupReminder() {
+  if (document.hidden || !$('backup-modal').hidden) return;
+  if (!shouldRemindBackup()) return;
+  $('bm-ask').hidden = false;
+  $('bm-done').hidden = true;
+  $('backup-modal').hidden = false;
+}
+
+$('bm-save').addEventListener('click', async () => {
+  const done = await doBackup();
+  if (!done) return; // меню «Поделиться» закрыли: окно остаётся
+  $('bm-ask').hidden = true;
+  $('bm-done').hidden = false;
+  setTimeout(() => { $('backup-modal').hidden = true; }, 2500);
+});
+
+$('bm-later').addEventListener('click', () => {
+  try { localStorage.setItem(SNOOZE_KEY, new Date(Date.now() + DAY_MS).toISOString()); } catch (e) {}
+  $('backup-modal').hidden = true;
+});
+
+window.addEventListener('load', () => setTimeout(checkBackupReminder, 1500));
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) setTimeout(checkBackupReminder, 1000);
 });
 
 // Приводим запись из файла к правильному виду, чтобы испорченные поля не сломали приложение

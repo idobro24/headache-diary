@@ -643,6 +643,54 @@ body::after {
   pointer-events: none;
 }
 
+/* ===== Дневник давления ===== */
+.bp { width: 100%; max-width: 520px; text-align: left; }
+.bp-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+.bp-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--text-muted); }
+.bp-field input { width: 100%; font-size: 20px; text-align: center; }
+.bp-time-row { margin-top: 14px; }
+.bp .primary-button { margin-top: 18px; }
+#lg-bp-list .bp-row:last-child { margin-bottom: 10px; }
+#lg-bp-sys, #lg-bp-dia, #lg-bp-pulse { flex: 1; text-align: center; }
+.bp-ok { margin-top: 12px; font-size: 15px; color: var(--text-muted); text-align: center; }
+.bp-warning {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(181, 154, 106, 0.5);
+  background: rgba(181, 154, 106, 0.1);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.bp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.bp-main { font-size: 17px; }
+.bp-chart { margin-top: 24px; }
+.bp-svg { display: block; width: 100%; height: auto; }
+.bp-svg .grid { stroke: var(--border); stroke-width: 1; }
+.bp-svg .axis { fill: var(--text-muted); font-size: 9px; }
+.bp-svg polyline { fill: none; stroke-width: 1.5; stroke-linejoin: round; }
+.bp-svg .line-sys { stroke: var(--text); }
+.bp-svg .line-dia { stroke: var(--accent); }
+.bp-svg .dot-sys { fill: var(--text); }
+.bp-svg .dot-dia { fill: var(--accent); }
+.bp-svg .pain { fill: #B9705A; }
+.bp-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; font-size: 13px; color: var(--text-muted); }
+.bp-legend span { display: flex; align-items: center; gap: 6px; }
+.bp-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.lg-sys { background: var(--text); }
+.lg-dia { background: var(--accent); }
+.lg-pain { background: #B9705A; }
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
 /* Метка тестовой версии */
 .test-badge {
   position: fixed;

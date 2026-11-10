@@ -242,6 +242,7 @@ function openLogger(ep, fromStart) {
   renderChips('lg-triggers', OPTIONS.triggers, 'triggers');
   renderMeds();
   fillMedList();
+  renderLoggerBP(ep);
   $('logger').hidden = false;
   $('logger').scrollTop = 0;
 }

@@ -273,6 +273,18 @@ function renderStats(all, monthEpisodes) {
     ]));
   }
 
+  // Давление за месяц
+  const monthBP = Store.loadBP().filter(m => {
+    const d = new Date(m.time);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  });
+  if (monthBP.length) {
+    const sum = bpSummary(monthBP, all);
+    const lines = ['В среднем: ' + avgText(sum.all)];
+    if (sum.during) lines.push('Во время приступов: ' + avgText(sum.during));
+    box.appendChild(statBlock('Давление', lines));
+  }
+
   // Дни с обезболивающими за последние 30 дней
   const since = Date.now() - 30 * DAY_MS;
   const medDays = new Set();

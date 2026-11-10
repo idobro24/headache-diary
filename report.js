@@ -413,7 +413,7 @@ $('restore-file').addEventListener('change', async e => {
       sys: m.sys,
       dia: m.dia,
       pulse: Number.isInteger(m.pulse) ? m.pulse : null,
-      ...(m.phase === 'start' || m.phase === 'end' ? { phase: m.phase } : {})
+      ...(['start', 'during', 'end'].includes(m.phase) ? { phase: m.phase } : {})
     }));
     Store.saveBP([...bpExisting, ...bpNew]);
     bpAdded = bpNew.length;

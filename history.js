@@ -273,6 +273,18 @@ function renderStats(all, monthEpisodes) {
     ]));
   }
 
+  // Давление за месяц
+  const monthBP = Store.loadBP().filter(m => {
+    const d = new Date(m.time);
+    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
+  });
+  if (monthBP.length) {
+    const sum = bpSummary(monthBP, all);
+    const lines = ['В среднем: ' + avgText(sum.all)];
+    if (sum.during) lines.push('Во время приступов: ' + avgText(sum.during));
+    box.appendChild(statBlock('Давление', lines));
+  }
+
   // Дни с обезболивающими за последние 30 дней
   const since = Date.now() - 30 * DAY_MS;
   const medDays = new Set();
@@ -359,21 +371,10 @@ $('show-month').addEventListener('click', () => {
   renderHistory();
 });
 
-// Добавить прошлый приступ: на выбранный день или на последний час
+// Добавить прошлый приступ: дату и время пользователь указывает сам
 $('btn-add-past').addEventListener('click', () => {
-  const now = new Date();
-  let start, end;
-  if (selectedDay) {
-    start = keyToDate(selectedDay);
-    start.setHours(12, 0, 0, 0);
-    end = new Date(start.getTime() + 2 * 3600000);
-  } else {
-    end = new Date(now);
-    start = new Date(now.getTime() - 3600000);
-  }
-  if (end > now) {
-    end = new Date(now);
-    start = new Date(now.getTime() - 3600000);
-  }
-  openLogger(Store.createPast(start, end), false);
+  const draft = Store.blank(new Date(), null);
+  draft.start = null;
+  draft.draft = true;
+  openLogger(draft, false);
 });

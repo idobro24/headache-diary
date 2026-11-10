@@ -28,6 +28,7 @@ const $ = id => document.getElementById(id);
 function pad(n) { return String(n).padStart(2, '0'); }
 
 function timeOf(iso) {
+  if (!iso) return '—';
   const d = new Date(iso);
   return pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
@@ -49,6 +50,7 @@ function daysWord(n) {
 
 // Дата и время для поля datetime-local и обратно
 function toLocalInput(iso) {
+  if (!iso) return '';
   const d = new Date(iso);
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
          'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
@@ -80,7 +82,7 @@ function renderIntensity() {
     btn.append(emoji, label);
     btn.addEventListener('click', () => {
       current.intensity = opt.value;
-      Store.upsert(current);
+      saveCurrent();
       renderIntensity();
     });
     box.appendChild(btn);
@@ -100,7 +102,7 @@ function renderChips(containerId, items, field) {
       const i = list.indexOf(item);
       if (i >= 0) list.splice(i, 1); else list.push(item);
       chip.classList.toggle('selected');
-      Store.upsert(current);
+      saveCurrent();
     });
     box.appendChild(chip);
   });
@@ -119,7 +121,7 @@ function renderMeds() {
     del.setAttribute('aria-label', 'Удалить лекарство');
     del.addEventListener('click', () => {
       current.meds.splice(i, 1);
-      Store.upsert(current);
+      saveCurrent();
       renderMeds();
     });
     li.append(text, del);
@@ -135,7 +137,7 @@ function renderMeds() {
         b.classList.toggle('selected', med.helped === val);
         b.addEventListener('click', () => {
           med.helped = med.helped === val ? null : val;
-          Store.upsert(current);
+          saveCurrent();
           renderMeds();
         });
         row.appendChild(b);
@@ -159,7 +161,7 @@ function renderImpact(ep, prefix) {
     chip.addEventListener('click', () => {
       ep.impact = ep.impact === val ? null : val;
       if (ep.impact !== 'reduced' && ep.impact !== 'missed') ep.impactAreas = [];
-      Store.upsert(ep);
+      saveEp(ep);
       renderImpact(ep, prefix);
     });
     box.appendChild(chip);
@@ -179,7 +181,7 @@ function renderImpact(ep, prefix) {
       const i = ep.impactAreas.indexOf(area);
       if (i >= 0) ep.impactAreas.splice(i, 1); else ep.impactAreas.push(area);
       chip.classList.toggle('selected');
-      Store.upsert(ep);
+      saveEp(ep);
     });
     areas.appendChild(chip);
   });
@@ -205,14 +207,35 @@ function addPendingMed() {
     name,
     dose: $('lg-med-dose').value.trim(),
     // для прошлого приступа время приёма неизвестно, берём начало приступа
-    time: current.end ? current.start : new Date().toISOString(),
+    time: current.draft ? current.start : (current.end ? current.start : new Date().toISOString()),
     helped: null
   });
-  Store.upsert(current);
+  saveCurrent();
   $('lg-med-name').value = '';
   $('lg-med-dose').value = '';
   renderMeds();
   fillMedList();
+}
+
+// Черновик — новая запись о прошлом приступе, пока не указаны начало и конец.
+// Он хранится только в памяти и попадает в дневник, когда обе даты заполнены.
+function saveEp(ep) {
+  if (!ep || ep.draft) return;
+  Store.upsert(ep);
+}
+
+function saveCurrent() {
+  saveEp(current);
+}
+
+// Когда у черновика есть начало и конец, превращаем его в настоящую запись
+function finalizeDraft() {
+  if (!current || !current.draft || !current.start || !current.end) return;
+  delete current.draft;
+  current.meds.forEach(m => { if (!m.time) m.time = current.start; });
+  Store.upsert(current);
+  $('lg-title').textContent = 'Запись о приступе';
+  renderMeds();
 }
 
 // --- Открытие и закрытие логгера ---
@@ -220,9 +243,10 @@ function addPendingMed() {
 function openLogger(ep, fromStart) {
   current = ep;
   openedFromStart = fromStart;
-  const isActive = !ep.end;
+  const isActive = !ep.end && !ep.draft;
 
-  $('lg-title').textContent = fromStart ? 'Приступ записан 🌿' : 'Запись о приступе';
+  $('lg-title').textContent = fromStart ? 'Приступ записан 🌿'
+    : ep.draft ? 'Новая запись о приступе' : 'Запись о приступе';
   $('lg-time-row').hidden = !isActive;
   $('lg-range-row').hidden = isActive;
   if (isActive) {
@@ -242,8 +266,15 @@ function openLogger(ep, fromStart) {
   renderChips('lg-triggers', OPTIONS.triggers, 'triggers');
   renderMeds();
   fillMedList();
+  renderLoggerBP(ep);
   $('logger').hidden = false;
   $('logger').scrollTop = 0;
+}
+
+function discardDraft() {
+  current = null;
+  $('logger').hidden = true;
+  refreshScreens();
 }
 
 function refreshScreens() {
@@ -252,6 +283,17 @@ function refreshScreens() {
 }
 
 function closeLogger() {
+  if (current && current.draft) {
+    if (!confirm('Укажите начало и конец приступа, чтобы сохранить запись. Закрыть без сохранения?')) return;
+    discardDraft();
+    return;
+  }
+  // Давление, вписанное без нажатия «+», тоже сохраняем.
+  // Если в нём ошибка или оно очень высокое, запись не закрываем, чтобы сообщение увидели
+  if (!addPendingLoggerBP()) {
+    $('lg-bp-msg').scrollIntoView({ block: 'center' });
+    return;
+  }
   addPendingMed(); // если лекарство вписано, но «+» не нажат
   $('logger').hidden = true;
   const goHelp = openedFromStart;
@@ -285,7 +327,7 @@ function openEndSheet() {
       b.classList.toggle('selected', med.helped === val);
       b.addEventListener('click', () => {
         med.helped = val;
-        Store.upsert(ep);
+        saveEp(ep);
         row.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
         b.classList.add('selected');
       });
@@ -295,6 +337,7 @@ function openEndSheet() {
     box.appendChild(block);
   });
   renderImpact(ep, 'end');
+  resetEndBP();
   $('end-sheet').hidden = false;
 }
 
@@ -349,36 +392,43 @@ $('lg-time').addEventListener('change', e => {
   d.setHours(h, m, 0, 0);
   if (d > new Date()) d.setDate(d.getDate() - 1); // началось вчера вечером
   current.start = d.toISOString();
-  Store.upsert(current);
+  saveCurrent();
 });
 
 // Начало и конец завершённого приступа
 $('lg-start-dt').addEventListener('change', e => {
   const d = parseLocalInput(e.target.value);
-  if (!d || d > new Date() || d >= new Date(current.end)) {
+  if (!d || d > new Date() || (current.end && d >= new Date(current.end))) {
     alert('Начало должно быть раньше конца приступа и не в будущем.');
     e.target.value = toLocalInput(current.start);
     return;
   }
   current.start = d.toISOString();
-  Store.upsert(current);
+  saveCurrent();
+  finalizeDraft();
 });
 
 $('lg-end-dt').addEventListener('change', e => {
   const d = parseLocalInput(e.target.value);
+  if (current.draft && !current.start) {
+    alert('Сначала укажите начало приступа.');
+    e.target.value = '';
+    return;
+  }
   if (!d || d > new Date() || d <= new Date(current.start)) {
     alert('Конец должен быть позже начала приступа и не в будущем.');
     e.target.value = toLocalInput(current.end);
     return;
   }
   current.end = d.toISOString();
-  Store.upsert(current);
+  saveCurrent();
+  finalizeDraft();
 });
 
 $('lg-note').addEventListener('input', e => {
   if (!current) return;
   current.note = e.target.value;
-  Store.upsert(current);
+  saveCurrent();
 });
 
 $('lg-med-add').addEventListener('click', addPendingMed);
@@ -386,6 +436,10 @@ $('lg-done').addEventListener('click', closeLogger);
 
 $('lg-delete').addEventListener('click', () => {
   if (!current) return;
+  if (current.draft) {
+    discardDraft();
+    return;
+  }
   if (!confirm('Удалить эту запись? Это действие нельзя отменить.')) return;
   Store.remove(current.id);
   current = null;
@@ -394,8 +448,10 @@ $('lg-delete').addEventListener('click', () => {
 });
 
 $('end-yes').addEventListener('click', () => {
+  // Давление в конце приступа: при ошибке или очень высоком значении окно не закрываем
+  if (!addPendingEndBP()) return;
   current.end = new Date().toISOString();
-  Store.upsert(current);
+  saveCurrent();
   current = null;
   $('end-sheet').hidden = true;
   refreshScreens();

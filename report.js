@@ -112,6 +112,7 @@ function buildReport(days) {
 
   if (!episodes.length) {
     html += '<p>За этот период приступов не записано.</p>';
+    html += bpReportSection(from, now, episodes);
     return html;
   }
 
@@ -139,6 +140,8 @@ function buildReport(days) {
     });
     html += '</table></div>';
   }
+
+  html += bpReportSection(from, now, episodes);
 
   // Все приступы по порядку
   html += '<h2>Все приступы</h2><div class="table-wrap"><table class="r-episodes">';
@@ -170,6 +173,30 @@ function buildReport(days) {
       '<td>' + escapeHtml(impactText) + '</td>' +
       '<td>' + escapeHtml(ep.note || '—') + '</td>' +
       '</tr>';
+  });
+  html += '</table></div>';
+  return html;
+}
+
+// Давление в отчёте: средние значения и все замеры за период
+function bpReportSection(from, now, episodes) {
+  const list = Store.loadBP()
+    .filter(m => new Date(m.time) >= from && new Date(m.time) <= now)
+    .sort((a, b) => new Date(a.time) - new Date(b.time));
+  if (!list.length) return '';
+  const allEpisodes = Store.load();
+  const sum = bpSummary(list, allEpisodes);
+  let html = '<h2>Артериальное давление</h2><div class="table-wrap"><table>';
+  html += '<tr><th>Среднее за период</th><td>' + avgText(sum.all) + '</td></tr>';
+  html += '<tr><th>Во время приступов</th><td>' + avgText(sum.during) + '</td></tr>';
+  html += '<tr><th>В дни без головной боли</th><td>' + avgText(sum.painFree) + '</td></tr>';
+  html += '</table></div>';
+  html += '<div class="table-wrap"><table class="r-episodes">' +
+          '<tr><th>Дата</th><th>Время</th><th>Давление</th><th>Пульс</th><th>Во время приступа</th></tr>';
+  list.forEach(m => {
+    html += '<tr><td>' + fullDate(new Date(m.time)) + '</td><td>' + timeOf(m.time) + '</td>' +
+            '<td>' + m.sys + '/' + m.dia + '</td><td>' + (m.pulse || '—') + '</td>' +
+            '<td>' + (episodeAt(m.time, allEpisodes) ? 'да' : '—') + '</td></tr>';
   });
   html += '</table></div>';
   return html;
@@ -247,7 +274,8 @@ async function doBackup() {
     format: 1,
     exportedAt: new Date().toISOString(),
     firstUse: Store.firstUse().toISOString(),
-    episodes: Store.load()
+    episodes: Store.load(),
+    bp: Store.loadBP()
   };
   const done = await shareOrDownload('headache-backup-' + fileDate() + '.json',
                                      JSON.stringify(data, null, 2), 'application/json');
@@ -276,7 +304,7 @@ function readTime(key) {
 
 function shouldRemindBackup() {
   const episodes = Store.load();
-  if (!episodes.length) return false;               // сохранять пока нечего
+  if (!episodes.length && !Store.loadBP().length) return false; // сохранять пока нечего
   if (episodes.some(ep => !ep.end)) return false;   // во время приступа не беспокоим
   if (document.querySelector('.sheet:not([hidden])')) return false; // открыто другое окно
   const now = Date.now();
@@ -368,8 +396,31 @@ $('restore-file').addEventListener('change', async e => {
   });
 
   Store.save([...existing, ...added]);
+
+  // Замеры давления (в копиях старых версий их нет)
+  let bpAdded = 0;
+  if (Array.isArray(data.bp)) {
+    const bpExisting = Store.loadBP();
+    const bpIds = new Set(bpExisting.map(m => m.id));
+    const bpNew = data.bp.filter(m =>
+      m && typeof m.id === 'string' && !bpIds.has(m.id) && !isNaN(new Date(m.time)) &&
+      Number.isInteger(m.sys) && Number.isInteger(m.dia) &&
+      m.sys >= BP_LIMITS.sys[0] && m.sys <= BP_LIMITS.sys[1] &&
+      m.dia >= BP_LIMITS.dia[0] && m.dia <= BP_LIMITS.dia[1]
+    ).map(m => ({
+      id: m.id,
+      time: new Date(m.time).toISOString(),
+      sys: m.sys,
+      dia: m.dia,
+      pulse: Number.isInteger(m.pulse) ? m.pulse : null
+    }));
+    Store.saveBP([...bpExisting, ...bpNew]);
+    bpAdded = bpNew.length;
+  }
+
   alert('Готово. Добавлено записей: ' + added.length +
-        '. Уже были в дневнике: ' + (valid.length - added.length) + '.');
+        '. Уже были в дневнике: ' + (valid.length - added.length) + '.' +
+        (Array.isArray(data.bp) ? ' Добавлено замеров давления: ' + bpAdded + '.' : ''));
   refreshScreens();
   renderBackupStatus();
 });

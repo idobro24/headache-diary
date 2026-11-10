@@ -40,15 +40,34 @@ function episodeAt(time, episodes) {
   return episodes.find(ep => new Date(ep.start) <= t && t <= (ep.end ? new Date(ep.end) : new Date())) || null;
 }
 
-// Когда сделан замер относительно приступа: в начале, во время, в конце или вне приступа
+// Когда сделан замер относительно приступа.
+// Правило: первый замер приступа — «в начале», замер из окна «Приступ закончился?» — «в конце»,
+// все остальные — «во время».
 function bpPhase(m, episodes) {
   const ep = episodeAt(m.time, episodes);
   if (!ep) return null;
-  if (m.phase === 'start' || m.phase === 'end') return m.phase;
+  if (m.phase) return m.phase;
+  // Для старых замеров без пометки определяем по порядку
+  const same = measurementsOf(ep, Store.loadBP());
+  if (same.length && same[0].id === m.id) return 'start';
   const t = new Date(m.time).getTime();
-  if (Math.abs(t - new Date(ep.start).getTime()) < 2 * 60000) return 'start';
   if (ep.end && Math.abs(t - new Date(ep.end).getTime()) < 2 * 60000) return 'end';
   return 'during';
+}
+
+// Замеры, сделанные во время приступа, по порядку
+function measurementsOf(ep, list) {
+  const s = new Date(ep.start), e = ep.end ? new Date(ep.end) : new Date();
+  return list
+    .filter(m => { const t = new Date(m.time); return s <= t && t <= e; })
+    .sort((a, b) => new Date(a.time) - new Date(b.time));
+}
+
+// Пометка для нового замера: первый в приступе — начало, следующие — во время
+function phaseForNew(time) {
+  const ep = episodeAt(time, Store.load());
+  if (!ep) return null;
+  return measurementsOf(ep, Store.loadBP()).length ? 'during' : 'start';
 }
 
 const PHASE_LABEL = { start: 'В начале приступа', during: 'Во время приступа', end: 'В конце приступа' };
@@ -101,7 +120,10 @@ function bpSummary(measurements, episodes) {
 
 // --- Вкладка «Давление» ---
 
+let bpTimeEdited = false; // меняли ли время замера вручную
+
 function resetBPForm() {
+  bpTimeEdited = false;
   $('bp-sys').value = '';
   $('bp-dia').value = '';
   $('bp-pulse').value = '';
@@ -234,12 +256,15 @@ $('bp-save').addEventListener('click', () => {
     showBPMessage(r.error, false);
     return;
   }
-  const time = parseLocalInput($('bp-time').value) || new Date();
+  // Если время не меняли, берём точное «сейчас» (в поле время только до минуты)
+  const time = bpTimeEdited ? (parseLocalInput($('bp-time').value) || new Date()) : new Date();
   if (time > new Date()) {
     showBPMessage('Время замера не может быть в будущем.', false);
     return;
   }
   const m = { id: bpId(), time: time.toISOString(), sys: r.sys, dia: r.dia, pulse: r.pulse };
+  const p = phaseForNew(m.time);
+  if (p) m.phase = p;
   Store.addBP(m);
   resetBPForm();
   renderBP();
@@ -247,6 +272,8 @@ $('bp-save').addEventListener('click', () => {
   else if (episodeAt(m.time, Store.load())) showBPMessage('Замер ' + bpText(m) + ' сохранён и добавлен к приступу 🌿', false);
   else showBPMessage('Замер ' + bpText(m) + ' сохранён 🌿', false);
 });
+
+$('bp-time').addEventListener('change', () => { bpTimeEdited = true; });
 
 function bpShown() {
   resetBPForm();
@@ -287,7 +314,8 @@ function addBPFromFields(prefix, time, afterSave, phase) {
     return false;
   }
   const m = { id: bpId(), time, sys: r.sys, dia: r.dia, pulse: r.pulse };
-  if (phase) m.phase = phase;
+  const p = phase || phaseForNew(time);
+  if (p) m.phase = p;
   Store.addBP(m);
   $(prefix + '-sys').value = '';
   $(prefix + '-dia').value = '';
@@ -316,7 +344,7 @@ function addBPFromFields(prefix, time, afterSave, phase) {
 function addPendingLoggerBP() {
   if (!current) return true;
   const time = current.end ? current.start : new Date().toISOString();
-  return addBPFromFields('lg-bp', time, () => renderLoggerBP(current), current.end ? 'start' : null);
+  return addBPFromFields('lg-bp', time, () => renderLoggerBP(current));
 }
 
 $('lg-bp-add').addEventListener('click', addPendingLoggerBP);
@@ -330,3 +358,21 @@ function resetEndBP() {
 function addPendingEndBP() {
   return addBPFromFields('end-bp', new Date().toISOString(), null, 'end');
 }
+
+// Поля давления: только цифры, а курсор при касании всегда в конце введённого числа,
+// чтобы его не приходилось двигать (на iPhone он иначе встаёт туда, куда пришлось касание)
+function caretToEnd(el) {
+  setTimeout(() => {
+    const n = el.value.length;
+    try { el.setSelectionRange(n, n); } catch (e) {}
+  }, 10);
+}
+
+document.querySelectorAll('.bp-input').forEach(el => {
+  el.addEventListener('focus', () => caretToEnd(el));
+  el.addEventListener('click', () => caretToEnd(el));
+  el.addEventListener('input', () => {
+    const digits = el.value.replace(/\D/g, '').slice(0, 3);
+    if (digits !== el.value) el.value = digits;
+  });
+});

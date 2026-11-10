@@ -256,15 +256,21 @@ function renderLoggerBP(ep) {
     .forEach(m => list.appendChild(bpRow(m, episodes, () => renderLoggerBP(ep))));
 }
 
-$('lg-bp-add').addEventListener('click', () => {
-  if (!current) return;
-  const r = readBP($('lg-bp-sys').value.trim(), $('lg-bp-dia').value.trim(), $('lg-bp-pulse').value.trim());
+// Добавить замер из записи приступа.
+// Возвращает false, только если поля заполнены с ошибкой (чтобы не закрывать запись и не потерять ввод)
+function addPendingLoggerBP() {
+  if (!current) return true;
+  const sysText = $('lg-bp-sys').value.trim();
+  const diaText = $('lg-bp-dia').value.trim();
+  const pulseText = $('lg-bp-pulse').value.trim();
+  if (!sysText && !diaText && !pulseText) return true; // ничего не вводили
   const msg = $('lg-bp-msg');
+  const r = readBP(sysText, diaText, pulseText);
   if (r.error) {
     msg.className = 'bp-ok';
     msg.textContent = r.error;
     msg.hidden = false;
-    return;
+    return false;
   }
   // у идущего приступа замер «сейчас», у прошлого — время начала
   const time = current.end ? current.start : new Date().toISOString();
@@ -285,5 +291,12 @@ $('lg-bp-add').addEventListener('click', () => {
     call.textContent = 'Позвонить в скорую: 103';
     msg.append(p, call);
     msg.hidden = false;
+    return false; // запись не закрываем, чтобы предупреждение точно увидели
   }
-});
+  msg.className = 'bp-ok';
+  msg.textContent = 'Замер сохранён 🌿';
+  msg.hidden = false;
+  return true;
+}
+
+$('lg-bp-add').addEventListener('click', addPendingLoggerBP);

@@ -1,6 +1,7 @@
 // Хранилище данных на устройстве
 const Store = {
   KEY: 'hd.episodes',
+  BP_KEY: 'hd.bp',
   FIRST_USE_KEY: 'hd.firstUse',
 
   load() {
@@ -93,6 +94,38 @@ const Store = {
       const s = new Date(e.start);
       if (s < date) date = s;
     });
+    this.loadBP().forEach(m => {
+      const t = new Date(m.time);
+      if (t < date) date = t;
+    });
     return date;
+  },
+
+  // --- Дневник давления ---
+
+  loadBP() {
+    try {
+      return JSON.parse(localStorage.getItem(this.BP_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveBP(list) {
+    try {
+      localStorage.setItem(this.BP_KEY, JSON.stringify(list));
+    } catch (e) {
+      alert('Не удалось сохранить замер. Проверьте свободное место на устройстве.');
+    }
+  },
+
+  addBP(measurement) {
+    const list = this.loadBP();
+    list.push(measurement);
+    this.saveBP(list);
+  },
+
+  removeBP(id) {
+    this.saveBP(this.loadBP().filter(m => m.id !== id));
   }
 };

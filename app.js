@@ -8,6 +8,7 @@ function showScreen(name) {
   window.scrollTo(0, 0);
   if (name === 'help') helpShown(); else helpHidden();
   if (name === 'history') renderHistory();
+  if (name === 'bp') bpShown();
 }
 
 tabs.forEach(tab => {

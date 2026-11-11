@@ -749,6 +749,21 @@ input[type="number"] { -moz-appearance: textfield; }
 .ios-standalone .sheet,
 .ios-standalone .modal { bottom: auto; height: var(--screen-h); }
 
+/* ===== Группы звуков и таймер сна ===== */
+.sound-group-title { margin: 14px 0 8px; font-size: 14px; color: var(--text-muted); }
+.sound-group-title:first-child { margin-top: 0; }
+.sleep-timer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-top: 16px;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.sleep-timer .chip { padding: 7px 12px; font-size: 14px; }
+.sleep-status { text-align: left; margin-top: 8px; }
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

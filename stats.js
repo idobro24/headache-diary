@@ -55,4 +55,15 @@ function loadCommunity() {
     .catch(() => {});
 }
 
-loadCommunity();
+// Для проверки на тестовом стенде: адрес с #community-demo показывает строку с примером числа.
+// Срабатывает и при загрузке, и когда приписку добавили к уже открытой странице
+function checkCommunityDemo() {
+  if (!IS_PRODUCTION && location.hash === '#community-demo') {
+    showCommunity(1243);
+    return true;
+  }
+  return false;
+}
+
+if (!checkCommunityDemo()) loadCommunity();
+window.addEventListener('hashchange', checkCommunityDemo);

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Тише">
-  <link rel="stylesheet" href="style.css?v=35">
+  <link rel="stylesheet" href="style.css?v=37">
 </head>
 <body>
   <main id="app">
@@ -48,6 +48,11 @@
         <label class="volume">Громкость
           <input type="range" id="volume" min="0" max="1" step="0.05" value="0.25">
         </label>
+        <div class="sleep-timer">
+          <span>Таймер сна</span>
+          <div class="chips" id="sleep-chips"></div>
+        </div>
+        <p class="hint-small sleep-status" id="sleep-status" hidden></p>
 
         <h2 class="section-title">Что может помочь</h2>
         <div class="checklist" id="checklist"></div>
@@ -69,7 +74,7 @@
 
         <label class="toggle-row"><input type="checkbox" id="dim-mode"> Темнее тёмного</label>
         <label class="toggle-row toggle-next"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 35</p>
+        <p class="version">Версия 37</p>
       </div>
     </section>
 
@@ -323,15 +328,15 @@
     </div>
   </div>
 
-  <script src="storage.js?v=35"></script>
-  <script src="logger.js?v=35"></script>
-  <script src="help.js?v=35"></script>
-  <script src="history.js?v=35"></script>
-  <script src="report.js?v=35"></script>
-  <script src="message.js?v=35"></script>
-  <script src="info.js?v=35"></script>
-  <script src="bp.js?v=35"></script>
-  <script src="news.js?v=35"></script>
-  <script src="app.js?v=35"></script>
+  <script src="storage.js?v=37"></script>
+  <script src="logger.js?v=37"></script>
+  <script src="help.js?v=37"></script>
+  <script src="history.js?v=37"></script>
+  <script src="report.js?v=37"></script>
+  <script src="message.js?v=37"></script>
+  <script src="info.js?v=37"></script>
+  <script src="bp.js?v=37"></script>
+  <script src="news.js?v=37"></script>
+  <script src="app.js?v=37"></script>
 </body>
 </html>

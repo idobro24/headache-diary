@@ -462,7 +462,7 @@ function addBirdPhrase(data, start, sr) {
   const n = 2 + Math.floor(Math.random() * 4);
   const base = 2600 + Math.random() * 1400;
   const up = Math.random() < 0.5;
-  const amp = 0.04 + Math.random() * 0.04;
+  const amp = 0.03 + Math.random() * 0.03;
   let pos = Math.floor(start);
   for (let k = 0; k < n; k++) {
     const len = Math.floor((0.06 + Math.random() * 0.07) * sr);
@@ -488,7 +488,8 @@ function genWoods(data, sr) {
   for (let i = 0; i < data.length; i++) {
     const t = i / sr;
     flutter += aF * ((Math.random() * 2 - 1) - flutter);
-    const gust = 0.55 + 0.25 * Math.sin(2 * Math.PI * 2 * t / total) + 0.15 * Math.sin(2 * Math.PI * 3 * t / total + 1);
+    // почти ровный тихий шелест, как в самые спокойные моменты, лишь едва заметно «дышит»
+    const gust = 0.9 + 0.06 * Math.sin(2 * Math.PI * 2 * t / total) + 0.04 * Math.sin(2 * Math.PI * 3 * t / total + 1);
     data[i] = leaves() * gust * (0.9 + 1.5 * flutter);
   }
   normalizeRms(data, 0.045);
@@ -535,23 +536,26 @@ function genBreathing(data, sr, opts) {
   }
 }
 
-// Мурчание кота: низкое «ррр» примерно 25 раз в секунду, на вдохе чуть выше и тише, на выдохе ниже и громче
+// Мурчание кота: приглушённое «ррр», как будто слышишь его, прижавшись к тёплому боку.
+// Низкий шум, сглаженный дважды (без хрипящих высоких частот), с мягкими толчками около 22–24 раз в секунду
 function genPurr(data, sr) {
   const total = SOUND_SETTINGS.purr.seconds;
   const cycles = cycleSchedule(total, 2.6, 0.08);
-  const body = bandSource(110, 850, sr);
-  const room = pinkSource();
+  const body = bandSource(60, 420, sr);
+  const aSoft = onePole(380, sr);
+  let soft = 0;
   let phase = 0;
   for (let i = 0; i < data.length; i++) {
     const t = i / sr;
     const { x } = cycleAt(cycles, total, t);
     const inhale = x < 0.44;
     // короткая пауза между вдохом и выдохом
-    const env = inhale ? bump(x / 0.44) ** 0.5 * 0.75 : bump((x - 0.47) / 0.53) ** 0.5;
-    const rate = inhale ? 24 : 21;
+    const env = inhale ? bump(x / 0.44) ** 0.5 * 0.8 : bump((x - 0.47) / 0.53) ** 0.5;
+    const rate = inhale ? 24 : 22;
     phase += 2 * Math.PI * rate / sr;
-    const pulse = Math.pow(0.5 + 0.5 * Math.sin(phase), 3); // отдельные «толчки» мурчания
-    data[i] = env * (0.25 + 0.75 * pulse) * body() + 0.003 * room();
+    const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2; // мягкие, а не резкие толчки
+    soft += aSoft * (body() - soft);                    // ещё раз сглаживаем: «через шёрстку»
+    data[i] = env * (0.45 + 0.55 * pulse) * soft;
   }
 }
 
@@ -559,8 +563,8 @@ const SOUND_SETTINGS = {
   white: { seconds: 12 }, pink: { seconds: 12 }, brown: { seconds: 12 },
   rain: { seconds: 12 }, forest: { seconds: 12 }, umbrella: { seconds: 12 }, car: { seconds: 16 },
   drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 12, peak: 1.4 },
-  woods: { seconds: 24, rms: 0.07 }, surf: { seconds: 30 },
-  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.045 }, purr: { seconds: 26, rms: 0.05 }
+  woods: { seconds: 24, rms: 0.028 }, surf: { seconds: 30 },
+  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.045 }, purr: { seconds: 26, rms: 0.055 }
 };
 
 function makeLoop(data, sr) {

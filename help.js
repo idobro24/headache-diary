@@ -292,35 +292,36 @@ function addCrackle(data, start, amp, decaySec, lowCut, highCut, sr) {
 }
 
 function genFire(data, sr) {
-  // Еле слышный тёплый гул пламени на фоне
+  // Фон почти тихий: лишь еле уловимое тепло огня между щелчками
   const noise = brownSource();
-  const a = onePole(300, sr);
+  const a = onePole(250, sr);
   let lp = 0;
   for (let i = 0; i < data.length; i++) {
     lp += a * (noise() - lp);
     const t = i / sr;
     data[i] = lp * (0.75 + 0.25 * Math.sin(2 * Math.PI * t * 0.23) * Math.sin(2 * Math.PI * t * 0.37 + 1));
   }
-  normalizeRms(data, 0.025);
+  normalizeRms(data, 0.006);
 
-  // Треск дров: частые щелчки разной силы, серии «потрескиваний» и иногда громкий щелчок полена
+  // Треск дров: глухие низкие щелчки, как от полена, иногда громкий «стук» полена и редкие серии
   let pos = Math.floor(sr * 0.05);
   while (pos < data.length) {
-    pos += Math.floor(sr * (0.15 + Math.random() * Math.random() * 0.7));
+    pos += Math.floor(sr * (0.45 + Math.random() * Math.random() * 1.2));
     const r = Math.random();
-    if (r < 0.1) {
-      // громкий щелчок полена: ниже и длиннее
-      addCrackle(data, pos, 0.55 + Math.random() * 0.25, 0.008 + Math.random() * 0.01, 150, 1800, sr);
+    if (r < 0.12) {
+      // громкий щелчок полена: совсем низкий и длинный, почти «стук»
+      addCrackle(data, pos, 0.6 + Math.random() * 0.25, 0.018 + Math.random() * 0.014, 70, 650, sr);
     } else {
-      addCrackle(data, pos, 0.15 + Math.random() * 0.3, 0.002 + Math.random() * 0.004, 500, 3500 + Math.random() * 1500, sr);
+      // обычный треск: глухой, без звонких высоких частот
+      addCrackle(data, pos, 0.2 + Math.random() * 0.3, 0.005 + Math.random() * 0.006, 150, 1100 + Math.random() * 500, sr);
     }
-    if (Math.random() < 0.12) {
-      // серия мелких потрескиваний
+    if (Math.random() < 0.07) {
+      // серия мелких потрескиваний, тоже приглушённых
       const n = 2 + Math.floor(Math.random() * 4);
       let p = pos;
       for (let k = 0; k < n; k++) {
-        p += Math.floor(sr * (0.01 + Math.random() * 0.05));
-        addCrackle(data, p, 0.06 + Math.random() * 0.16, 0.0015 + Math.random() * 0.002, 700, 4000, sr);
+        p += Math.floor(sr * (0.02 + Math.random() * 0.06));
+        addCrackle(data, p, 0.08 + Math.random() * 0.14, 0.004, 250, 1500, sr);
       }
     }
   }
@@ -492,7 +493,7 @@ function genWoods(data, sr) {
     const gust = 0.9 + 0.06 * Math.sin(2 * Math.PI * 2 * t / total) + 0.04 * Math.sin(2 * Math.PI * 3 * t / total + 1);
     data[i] = leaves() * gust * (0.9 + 1.5 * flutter);
   }
-  normalizeRms(data, 0.045);
+  normalizeRms(data, 0.03);
   let t = 1 + Math.random() * 2;
   while (t < total - 1.5) {
     addBirdPhrase(data, t * sr, sr);
@@ -576,7 +577,7 @@ function genPurr(data, sr) {
       // выдох с мягкой вибрацией, как у собаки, и пауза после него
       phase += 2 * Math.PI * 24 / sr;
       const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2;
-      data[i] = bump((x - 0.33) / 0.37) ** 0.5 * (0.7 + 0.3 * pulse) * muffled * 0.92;
+      data[i] = bump((x - 0.33) / 0.37) ** 0.5 * (0.7 + 0.3 * pulse) * muffled * 0.62;
     }
   }
 }
@@ -585,8 +586,8 @@ const SOUND_SETTINGS = {
   white: { seconds: 12 }, pink: { seconds: 12 }, brown: { seconds: 12 },
   rain: { seconds: 12 }, forest: { seconds: 12 }, umbrella: { seconds: 12 }, car: { seconds: 16 },
   drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 12, peak: 1.4 },
-  woods: { seconds: 24, rms: 0.028 }, surf: { seconds: 30 },
-  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.041 }, purr: { seconds: 35, rms: 0.051 }
+  woods: { seconds: 24, rms: 0.019 }, surf: { seconds: 30 },
+  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.039 }, purr: { seconds: 35, rms: 0.037 }
 };
 
 function makeLoop(data, sr) {
@@ -623,7 +624,7 @@ function getSamples(type, sr) {
   } else if (type === 'dog') {
     genBreathing(data, sr, { seconds: set.seconds, period: 3.7, inShare: 0.35, outShare: 0.5,
                              inLow: 300, inHigh: 1300, outLow: 120, outHigh: 700, muffle: 450,
-                             snore: 24, snoreDepth: 0.3, sighEvery: 5, inGain: 0.45 });
+                             snore: 24, snoreDepth: 0.3, sighEvery: 5, inGain: 0.28 });
   }
   // Выравниваем громкость: у камина и капель по пикам (главное — щелчки и капли), у остальных по среднему
   if (set.peak) normalizePeak(data, set.peak);

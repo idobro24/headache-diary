@@ -306,7 +306,7 @@ function genFire(data, sr) {
   // Треск дров: частые щелчки разной силы, серии «потрескиваний» и иногда громкий щелчок полена
   let pos = Math.floor(sr * 0.05);
   while (pos < data.length) {
-    pos += Math.floor(sr * (0.06 + Math.random() * Math.random() * 0.4));
+    pos += Math.floor(sr * (0.15 + Math.random() * Math.random() * 0.7));
     const r = Math.random();
     if (r < 0.1) {
       // громкий щелчок полена: ниже и длиннее
@@ -314,7 +314,7 @@ function genFire(data, sr) {
     } else {
       addCrackle(data, pos, 0.15 + Math.random() * 0.3, 0.002 + Math.random() * 0.004, 500, 3500 + Math.random() * 1500, sr);
     }
-    if (Math.random() < 0.22) {
+    if (Math.random() < 0.12) {
       // серия мелких потрескиваний
       const n = 2 + Math.floor(Math.random() * 4);
       let p = pos;
@@ -435,20 +435,25 @@ function addPlink(data, start, amp, f0, sr) {
   }
 }
 
-// Редкие капли: почти тишина и отдельные мягкие капли с паузами
+// Редкие капли: тихая морось вдалеке и отдельные мягкие глухие капли по мокрым листьям и подоконнику
 function genDrops(data, sr) {
   const noise = pinkSource();
-  const a = onePole(700, sr);
-  let lp = 0;
+  const aL = onePole(1200, sr), aH = onePole(200, sr);
+  let lp = 0, hp = 0;
   for (let i = 0; i < data.length; i++) {
-    lp += a * (noise() - lp);
-    data[i] = lp;
+    lp += aL * (noise() - lp);
+    hp += aH * (lp - hp);
+    data[i] = lp - hp;
   }
-  normalizeRms(data, 0.006);
+  normalizeRms(data, 0.012);
   let pos = Math.floor(0.3 * sr);
   while (pos < data.length - 0.2 * sr) {
-    addPlink(data, pos, 0.35 + Math.random() * 0.35, 700 + Math.random() * 700, sr);
-    pos += Math.floor(sr * (0.6 + Math.random() * 1.9));
+    const big = Math.random() < 0.25;
+    addCrackle(data, pos,
+               big ? 0.4 + Math.random() * 0.2 : 0.18 + Math.random() * 0.2,
+               big ? 0.012 + Math.random() * 0.008 : 0.005 + Math.random() * 0.005,
+               big ? 120 : 250, big ? 900 : 1600, sr);
+    pos += Math.floor(sr * (0.5 + Math.random() * 1.6));
   }
 }
 
@@ -457,7 +462,7 @@ function addBirdPhrase(data, start, sr) {
   const n = 2 + Math.floor(Math.random() * 4);
   const base = 2600 + Math.random() * 1400;
   const up = Math.random() < 0.5;
-  const amp = 0.05 + Math.random() * 0.05;
+  const amp = 0.04 + Math.random() * 0.04;
   let pos = Math.floor(start);
   for (let k = 0; k < n; k++) {
     const len = Math.floor((0.06 + Math.random() * 0.07) * sr);
@@ -476,7 +481,7 @@ function addBirdPhrase(data, start, sr) {
 
 // Лес за окном: шелест листвы порывами и редкие тихие птицы
 function genWoods(data, sr) {
-  const leaves = bandSource(500, 3200, sr);
+  const leaves = bandSource(300, 2200, sr);
   const total = data.length / sr;
   const aF = onePole(6, sr);
   let flutter = 0;
@@ -484,9 +489,9 @@ function genWoods(data, sr) {
     const t = i / sr;
     flutter += aF * ((Math.random() * 2 - 1) - flutter);
     const gust = 0.55 + 0.25 * Math.sin(2 * Math.PI * 2 * t / total) + 0.15 * Math.sin(2 * Math.PI * 3 * t / total + 1);
-    data[i] = leaves() * gust * (0.8 + 4 * flutter);
+    data[i] = leaves() * gust * (0.9 + 1.5 * flutter);
   }
-  normalizeRms(data, 0.08);
+  normalizeRms(data, 0.045);
   let t = 1 + Math.random() * 2;
   while (t < total - 1.5) {
     addBirdPhrase(data, t * sr, sr);
@@ -533,7 +538,7 @@ function genBreathing(data, sr, opts) {
 // Мурчание кота: низкое «ррр» примерно 25 раз в секунду, на вдохе чуть выше и тише, на выдохе ниже и громче
 function genPurr(data, sr) {
   const total = SOUND_SETTINGS.purr.seconds;
-  const cycles = cycleSchedule(total, 2.0, 0.08);
+  const cycles = cycleSchedule(total, 2.6, 0.08);
   const body = bandSource(110, 850, sr);
   const room = pinkSource();
   let phase = 0;
@@ -543,7 +548,7 @@ function genPurr(data, sr) {
     const inhale = x < 0.44;
     // короткая пауза между вдохом и выдохом
     const env = inhale ? bump(x / 0.44) ** 0.5 * 0.75 : bump((x - 0.47) / 0.53) ** 0.5;
-    const rate = inhale ? 27 : 23;
+    const rate = inhale ? 24 : 21;
     phase += 2 * Math.PI * rate / sr;
     const pulse = Math.pow(0.5 + 0.5 * Math.sin(phase), 3); // отдельные «толчки» мурчания
     data[i] = env * (0.25 + 0.75 * pulse) * body() + 0.003 * room();
@@ -554,8 +559,8 @@ const SOUND_SETTINGS = {
   white: { seconds: 12 }, pink: { seconds: 12 }, brown: { seconds: 12 },
   rain: { seconds: 12 }, forest: { seconds: 12 }, umbrella: { seconds: 12 }, car: { seconds: 16 },
   drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 12, peak: 1.4 },
-  woods: { seconds: 24, rms: 0.1 }, surf: { seconds: 30 },
-  child: { seconds: 24, rms: 0.06 }, dog: { seconds: 30, rms: 0.07 }, purr: { seconds: 24, rms: 0.09 }
+  woods: { seconds: 24, rms: 0.07 }, surf: { seconds: 30 },
+  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.045 }, purr: { seconds: 26, rms: 0.05 }
 };
 
 function makeLoop(data, sr) {
@@ -587,7 +592,7 @@ function getSamples(type, sr) {
   else if (type === 'surf') genSurf(data, sr);
   else if (type === 'purr') genPurr(data, sr);
   else if (type === 'child') {
-    genBreathing(data, sr, { seconds: set.seconds, period: 2.6, inShare: 0.38, outShare: 0.45,
+    genBreathing(data, sr, { seconds: set.seconds, period: 3.6, inShare: 0.36, outShare: 0.44,
                              inLow: 600, inHigh: 3000, outLow: 400, outHigh: 2200 });
   } else if (type === 'dog') {
     genBreathing(data, sr, { seconds: set.seconds, period: 3.7, inShare: 0.35, outShare: 0.5,
@@ -682,6 +687,37 @@ function renderSounds() {
     box.append(title, row);
   });
 }
+
+// --- Сворачивание приложения ---
+// iOS останавливает звук в фоне резко, со щелчком. Поэтому сами плавно гасим звук и ставим на паузу,
+// а когда пользователь возвращается, продолжаем тот же звук
+let resumeSound = null;
+
+document.addEventListener('visibilitychange', () => {
+  if (!audioCtx) return;
+  if (document.hidden) {
+    if (!noiseSource) return;
+    resumeSound = currentSound;
+    const now = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    gainNode.gain.linearRampToValueAtTime(0, now + 0.08);
+    setTimeout(() => { if (document.hidden) audioCtx.suspend(); }, 120);
+    return;
+  }
+  if (!resumeSound) return;
+  const type = resumeSound;
+  resumeSound = null;
+  // таймер сна закончился, пока приложение было свёрнуто
+  if (sleepEnd && Date.now() >= sleepEnd) {
+    stopSound(true);
+    setSleepTimer(0);
+    return;
+  }
+  audioCtx.resume().then(() => playSound(type)).catch(() => stopSound(true));
+  // если iOS не разрешила продолжить без касания, честно показываем, что звук выключен
+  setTimeout(() => { if (audioCtx.state !== 'running') stopSound(true); }, 600);
+});
 
 // --- Таймер сна: звук плавно затихает и выключается сам ---
 

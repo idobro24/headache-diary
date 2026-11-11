@@ -57,6 +57,9 @@ body::before {
 }
 .home-foot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .community { max-width: 340px; font-size: 11px; line-height: 1.4; color: var(--text-muted); opacity: 0.6; text-align: center; }
+.community { transition: opacity 2.5s ease; }
+.community.faded { opacity: 0; }
+.no-motion .community { transition: none; }
 .credit {
   font-size: 12px;
   letter-spacing: 0.03em;

@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Тише">
-  <link rel="stylesheet" href="style.css?v=54">
+  <link rel="stylesheet" href="style.css?v=61">
 </head>
 <body>
   <main id="app">
@@ -77,7 +77,7 @@
 
         <label class="toggle-row"><input type="checkbox" id="dim-mode"> Темнее тёмного</label>
         <label class="toggle-row toggle-next"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 54</p>
+        <p class="version">Версия 61</p>
       </div>
     </section>
 
@@ -178,11 +178,12 @@
 
       <h2 class="section-title">Лекарство</h2>
       <div class="med-row">
-        <input id="lg-med-name" list="med-list" placeholder="Название" autocomplete="off">
+        <input id="lg-drug" type="search" list="med-list" placeholder="Препарат" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
         <input id="lg-med-dose" placeholder="Доза">
         <button class="small-button" id="lg-med-add" aria-label="Добавить лекарство">+</button>
       </div>
       <datalist id="med-list"></datalist>
+      <div class="chips med-quick" id="lg-med-quick"></div>
       <ul class="med-list" id="lg-meds"></ul>
 
       <h2 class="section-title">Давление</h2>
@@ -292,6 +293,9 @@
       <h2 class="section-title">Ваши данные</h2>
       <p>Записи о здоровье хранятся только на этом устройстве и никуда не отправляются. Приложение лишь анонимно считает, сколько раз его открывают, без каких-либо личных данных. Раз в месяц сохраняйте резервную копию в «Истории». На iPhone при удалении иконки с экрана данные стираются, поэтому сначала сохраните копию.</p>
 
+      <h2 class="section-title">Звуки</h2>
+      <p>Звук камина: «Inside Fireplace Ambiance With Outside Party Noise», автор donnydb (freesound.org/s/765340), лицензия CC BY-NC 4.0. Запись обрезана, зациклена, фоновый шум приглушён, громкость выровнена. Остальные звуки созданы прямо в приложении.</p>
+
       <h2 class="section-title">Важно</h2>
       <p>Приложение помогает вести дневник, но не заменяет врача. Список симптомов, при которых нужна срочная помощь, есть во вкладке «Помощь».</p>
 
@@ -331,16 +335,16 @@
     </div>
   </div>
 
-  <script src="storage.js?v=54"></script>
-  <script src="logger.js?v=54"></script>
-  <script src="help.js?v=54"></script>
-  <script src="history.js?v=54"></script>
-  <script src="report.js?v=54"></script>
-  <script src="message.js?v=54"></script>
-  <script src="info.js?v=54"></script>
-  <script src="bp.js?v=54"></script>
-  <script src="news.js?v=54"></script>
-  <script src="stats.js?v=54"></script>
-  <script src="app.js?v=54"></script>
+  <script src="storage.js?v=61"></script>
+  <script src="logger.js?v=61"></script>
+  <script src="help.js?v=61"></script>
+  <script src="history.js?v=61"></script>
+  <script src="report.js?v=61"></script>
+  <script src="message.js?v=61"></script>
+  <script src="info.js?v=61"></script>
+  <script src="bp.js?v=61"></script>
+  <script src="news.js?v=61"></script>
+  <script src="stats.js?v=61"></script>
+  <script src="app.js?v=61"></script>
 </body>
 </html>

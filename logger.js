@@ -8,10 +8,10 @@ const OPTIONS = {
   ],
   tags: ['Пульсирующая', 'Давящая', 'Колющая', 'Односторонняя', 'Глаза / переносица'],
   symptoms: ['Тошнота', 'Светобоязнь', 'Звукобоязнь', 'Аура'],
-  triggers: ['Недосып', 'Стресс', 'Кофеин', 'Работа за ПК', 'Экраны', 'Яркое солнце',
-             'Смена погоды', 'Алкоголь', 'Пропуск еды', 'Мало воды', 'Цикл'],
+  triggers: ['Недосып', 'Стресс', 'Кофеин', 'Работа за ПК', 'Экраны', 'Чтение', 'Яркое солнце',
+             'Смена погоды', 'Физическая нагрузка', 'Алкоголь', 'Пропуск еды', 'Мало воды', 'Цикл'],
   meds: ['Ибупрофен', 'Парацетамол', 'Нурофен', 'Цитрамон', 'Пенталгин', 'Кеторол',
-         'Суматриптан', 'Золмитриптан', 'Элетриптан', 'Ризатриптан']
+         'Суматриптан', 'Золмитриптан', 'Элетриптан', 'Ризатриптан', 'Эксенза (спрей)']
 };
 
 const HELPED = [['yes', 'Помогло'], ['partly', 'Частично'], ['no', 'Не помогло']];
@@ -187,6 +187,28 @@ function renderImpact(ep, prefix) {
   });
 }
 
+// Быстрый выбор: недавние лекарства (или самые частые из списка) кнопками под полем,
+// чтобы во время приступа не набирать название на клавиатуре
+function renderMedQuick() {
+  const box = $('lg-med-quick');
+  box.innerHTML = '';
+  // сначала свои недавние, затем дополняем самыми частыми из общего списка
+  const names = [...Store.recentMeds(), ...OPTIONS.meds]
+    .filter((n, i, arr) => arr.indexOf(n) === i)
+    .slice(0, 5);
+  names.forEach(name => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = name;
+    chip.addEventListener('click', () => {
+      $('lg-drug').value = name;
+      box.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+    });
+    box.appendChild(chip);
+  });
+}
+
 function fillMedList() {
   const names = [...Store.recentMeds(), ...OPTIONS.meds]
     .filter((n, i, arr) => arr.indexOf(n) === i);
@@ -201,7 +223,7 @@ function fillMedList() {
 
 function addPendingMed() {
   if (!current) return;
-  const name = $('lg-med-name').value.trim();
+  const name = $('lg-drug').value.trim();
   if (!name) return;
   current.meds.push({
     name,
@@ -211,10 +233,11 @@ function addPendingMed() {
     helped: null
   });
   saveCurrent();
-  $('lg-med-name').value = '';
+  $('lg-drug').value = '';
   $('lg-med-dose').value = '';
   renderMeds();
   fillMedList();
+  renderMedQuick();
 }
 
 // Черновик — новая запись о прошлом приступе, пока не указаны начало и конец.
@@ -266,6 +289,7 @@ function openLogger(ep, fromStart) {
   renderChips('lg-triggers', OPTIONS.triggers, 'triggers');
   renderMeds();
   fillMedList();
+  renderMedQuick();
   renderLoggerBP(ep);
   $('logger').hidden = false;
   $('logger').scrollTop = 0;

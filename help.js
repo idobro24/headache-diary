@@ -292,37 +292,37 @@ function addCrackle(data, start, amp, decaySec, lowCut, highCut, sr) {
 }
 
 function genFire(data, sr) {
-  // Еле слышный тёплый гул пламени на фоне
+  // Фон почти тихий: лишь еле уловимое тепло огня между щелчками
   const noise = brownSource();
-  const a = onePole(300, sr);
+  const a = onePole(250, sr);
   let lp = 0;
   for (let i = 0; i < data.length; i++) {
     lp += a * (noise() - lp);
     const t = i / sr;
     data[i] = lp * (0.75 + 0.25 * Math.sin(2 * Math.PI * t * 0.23) * Math.sin(2 * Math.PI * t * 0.37 + 1));
   }
-  normalizeRms(data, 0.025);
+  normalizeRms(data, 0.006);
 
-  // Треск дров: частые щелчки разной силы, серии «потрескиваний» и иногда громкий щелчок полена
-  let pos = Math.floor(sr * 0.05);
-  while (pos < data.length) {
-    pos += Math.floor(sr * (0.15 + Math.random() * Math.random() * 0.7));
-    const r = Math.random();
-    if (r < 0.1) {
-      // громкий щелчок полена: ниже и длиннее
-      addCrackle(data, pos, 0.55 + Math.random() * 0.25, 0.008 + Math.random() * 0.01, 150, 1800, sr);
-    } else {
-      addCrackle(data, pos, 0.15 + Math.random() * 0.3, 0.002 + Math.random() * 0.004, 500, 3500 + Math.random() * 1500, sr);
+  // Треск дров как в живом камине: короткая серия потрескиваний, затем спокойная пауза 1–4 секунды.
+  // Ритма нет: длина серий, промежутки и сила щелчков каждый раз разные
+  const seconds = data.length / sr;
+  let t = 0.3;
+  while (t < seconds) {
+    const n = 2 + Math.floor(Math.random() * 6);
+    for (let k = 0; k < n; k++) {
+      t += 0.06 + Math.random() * Math.random() * 0.45;
+      if (t >= seconds) break;
+      addCrackle(data, Math.floor(t * sr), 0.12 + Math.random() * 0.33,
+                 0.002 + Math.random() * 0.003, 300, 1800 + Math.random() * 600, sr);
     }
-    if (Math.random() < 0.12) {
-      // серия мелких потрескиваний
-      const n = 2 + Math.floor(Math.random() * 4);
-      let p = pos;
-      for (let k = 0; k < n; k++) {
-        p += Math.floor(sr * (0.01 + Math.random() * 0.05));
-        addCrackle(data, p, 0.06 + Math.random() * 0.16, 0.0015 + Math.random() * 0.002, 700, 4000, sr);
-      }
+    // иногда — мягкий щелчок полена
+    if (Math.random() < 0.25) {
+      t += 0.1 + Math.random() * 0.3;
+      if (t < seconds) addCrackle(data, Math.floor(t * sr), 0.45 + Math.random() * 0.2,
+                                  0.006 + Math.random() * 0.004, 150, 1000, sr);
     }
+    // тихая пауза
+    t += 1.2 + Math.random() * 2.8;
   }
 }
 
@@ -492,7 +492,7 @@ function genWoods(data, sr) {
     const gust = 0.9 + 0.06 * Math.sin(2 * Math.PI * 2 * t / total) + 0.04 * Math.sin(2 * Math.PI * 3 * t / total + 1);
     data[i] = leaves() * gust * (0.9 + 1.5 * flutter);
   }
-  normalizeRms(data, 0.045);
+  normalizeRms(data, 0.03);
   let t = 1 + Math.random() * 2;
   while (t < total - 1.5) {
     addBirdPhrase(data, t * sr, sr);
@@ -552,7 +552,7 @@ function genBreathing(data, sr, opts) {
 // как в сопении собаки, затем спокойная пауза перед следующим вдохом
 function genPurr(data, sr) {
   const total = SOUND_SETTINGS.purr.seconds;
-  const cycles = cycleSchedule(total, 4.4, 0.1);
+  const cycles = cycleSchedule(total, 6.0, 0.12);
   // вдох: низкий шум, сглаженный «через шёрстку»
   const body = bandSource(60, 420, sr);
   const aSoft = onePole(380, sr);
@@ -567,16 +567,16 @@ function genPurr(data, sr) {
     const { x } = cycleAt(cycles, total, t);
     soft += aSoft * (body() - soft);
     muffled += aMuffle * (outRaw() - muffled);
-    if (x < 0.3) {
+    if (x < 0.22) {
       // вдох
       phase += 2 * Math.PI * 21 / sr;
       const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2;
-      data[i] = bump(x / 0.3) ** 0.5 * 0.55 * (0.45 + 0.55 * pulse) * soft;
+      data[i] = bump(x / 0.22) ** 0.5 * 0.55 * (0.7 + 0.3 * pulse) * soft;
     } else {
       // выдох с мягкой вибрацией, как у собаки, и пауза после него
       phase += 2 * Math.PI * 24 / sr;
       const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2;
-      data[i] = bump((x - 0.33) / 0.37) ** 0.5 * (0.7 + 0.3 * pulse) * muffled * 0.92;
+      data[i] = bump((x - 0.25) / 0.28) ** 0.5 * (0.78 + 0.22 * pulse) * muffled * 0.62;
     }
   }
 }
@@ -584,9 +584,9 @@ function genPurr(data, sr) {
 const SOUND_SETTINGS = {
   white: { seconds: 12 }, pink: { seconds: 12 }, brown: { seconds: 12 },
   rain: { seconds: 12 }, forest: { seconds: 12 }, umbrella: { seconds: 12 }, car: { seconds: 16 },
-  drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 12, peak: 1.4 },
-  woods: { seconds: 24, rms: 0.028 }, surf: { seconds: 30 },
-  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.041 }, purr: { seconds: 35, rms: 0.051 }
+  drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 24, peak: 1.4 },
+  woods: { seconds: 24, rms: 0.019 }, surf: { seconds: 30 },
+  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.039 }, purr: { seconds: 36, rms: 0.03 }
 };
 
 function makeLoop(data, sr) {
@@ -623,7 +623,7 @@ function getSamples(type, sr) {
   } else if (type === 'dog') {
     genBreathing(data, sr, { seconds: set.seconds, period: 3.7, inShare: 0.35, outShare: 0.5,
                              inLow: 300, inHigh: 1300, outLow: 120, outHigh: 700, muffle: 450,
-                             snore: 24, snoreDepth: 0.3, sighEvery: 5, inGain: 0.45 });
+                             snore: 24, snoreDepth: 0.3, sighEvery: 5, inGain: 0.28 });
   }
   // Выравниваем громкость: у камина и капель по пикам (главное — щелчки и капли), у остальных по среднему
   if (set.peak) normalizePeak(data, set.peak);
@@ -633,7 +633,53 @@ function getSamples(type, sr) {
   return soundCache[key];
 }
 
-function playSound(type) {
+// Звуки из файлов-записей (остальные синтезируются). Если файл не загрузится, играет синтез
+const RECORDED_SOUNDS = { fire: 'fire.mp3' };
+const recordedCache = {};
+
+function decodeAudio(arrayBuffer) {
+  // старые версии Safari умеют только вариант с колбэками
+  return new Promise((resolve, reject) => {
+    const p = audioCtx.decodeAudioData(arrayBuffer, resolve, reject);
+    if (p && p.then) p.then(resolve, reject);
+  });
+}
+
+// Готовим запись к бесконечному повтору: убираем тишину, которую mp3 добавляет в начало и конец,
+// и плавно склеиваем конец с началом
+async function loadRecorded(type) {
+  if (recordedCache[type]) return recordedCache[type];
+  const response = await fetch(RECORDED_SOUNDS[type]);
+  if (!response.ok) throw new Error('no file');
+  const decoded = await decodeAudio(await response.arrayBuffer());
+  const raw = decoded.getChannelData(0);
+  let first = 0, last = raw.length - 1;
+  while (first < raw.length && Math.abs(raw[first]) < 1e-4) first++;
+  while (last > first && Math.abs(raw[last]) < 1e-4) last--;
+  const looped = makeLoop(raw.slice(first, last + 1), decoded.sampleRate);
+  const buffer = audioCtx.createBuffer(1, looped.length, decoded.sampleRate);
+  buffer.getChannelData(0).set(looped);
+  recordedCache[type] = buffer;
+  return buffer;
+}
+
+async function getBuffer(type) {
+  if (RECORDED_SOUNDS[type]) {
+    try {
+      return await loadRecorded(type);
+    } catch (e) {
+      // без файла — синтезированный вариант
+    }
+  }
+  const samples = getSamples(type, audioCtx.sampleRate);
+  const buffer = audioCtx.createBuffer(1, samples.length, audioCtx.sampleRate);
+  buffer.getChannelData(0).set(samples);
+  return buffer;
+}
+
+let playToken = 0; // чтобы быстрые переключения звуков не накладывались
+
+async function playSound(type) {
   if (!audioCtx) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) {
@@ -646,11 +692,14 @@ function playSound(type) {
   }
   audioCtx.resume();
   stopSound(true);
+  const token = ++playToken;
+  currentSound = type;   // кнопка подсвечивается сразу, даже пока запись загружается
+  renderSounds();
+
+  const buffer = await getBuffer(type);
+  if (token !== playToken || currentSound !== type) return; // пока грузилось, выбрали другое
 
   const src = audioCtx.createBufferSource();
-  const samples = getSamples(type, audioCtx.sampleRate);
-  const buffer = audioCtx.createBuffer(1, samples.length, audioCtx.sampleRate);
-  buffer.getChannelData(0).set(samples);
   src.buffer = buffer;
   src.loop = true;
   src.connect(gainNode);
@@ -669,13 +718,20 @@ function playSound(type) {
   gainNode.gain.setValueAtTime(0, now);
   gainNode.gain.linearRampToValueAtTime(Number($('volume').value), now + 1.5); // плавное начало
   src.start();
-  currentSound = type;
   scheduleSleepFade();
   renderSounds();
 }
 
 function stopSound(immediate, fadeSeconds = 0.6) {
-  if (!noiseSource) return;
+  if (!noiseSource) {
+    // звук ещё загружался: просто отменяем его
+    if (currentSound) {
+      currentSound = null;
+      playToken++;
+      renderSounds();
+    }
+    return;
+  }
   const src = noiseSource;
   noiseSource = null;
   currentSound = null;

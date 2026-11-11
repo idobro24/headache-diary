@@ -208,7 +208,10 @@ textarea { width: 100%; resize: vertical; }
 
 .med-row { display: flex; gap: 8px; }
 .med-row input { min-width: 0; }
-#lg-med-name { flex: 2; }
+#lg-drug { flex: 2; }
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+.med-quick { margin-top: 10px; }
+.med-quick .chip { padding: 7px 12px; font-size: 14px; }
 #lg-med-dose { flex: 1; }
 .small-button {
   flex-shrink: 0;

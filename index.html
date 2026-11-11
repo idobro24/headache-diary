@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Тише">
-  <link rel="stylesheet" href="style.css?v=35">
+  <link rel="stylesheet" href="style.css?v=51">
 </head>
 <body>
   <main id="app">
@@ -27,7 +27,10 @@
         <button class="link-button" id="btn-edit" hidden>Дополнить запись</button>
         <button class="ghost-button message-button" id="btn-message-home" hidden>Сообщить близким</button>
       </div>
-      <p class="credit">created by Irina Dobroslavskaya</p>
+      <div class="home-foot">
+        <p class="community" id="community" hidden></p>
+        <p class="credit">created by Irina Dobroslavskaya</p>
+      </div>
     </section>
 
     <section class="screen" id="screen-help">
@@ -48,6 +51,11 @@
         <label class="volume">Громкость
           <input type="range" id="volume" min="0" max="1" step="0.05" value="0.25">
         </label>
+        <div class="sleep-timer">
+          <span>Таймер сна</span>
+          <div class="chips" id="sleep-chips"></div>
+        </div>
+        <p class="hint-small sleep-status" id="sleep-status" hidden></p>
 
         <h2 class="section-title">Что может помочь</h2>
         <div class="checklist" id="checklist"></div>
@@ -69,7 +77,7 @@
 
         <label class="toggle-row"><input type="checkbox" id="dim-mode"> Темнее тёмного</label>
         <label class="toggle-row toggle-next"><input type="checkbox" id="no-motion"> Без анимации</label>
-        <p class="version">Версия 35</p>
+        <p class="version">Версия 51</p>
       </div>
     </section>
 
@@ -282,7 +290,7 @@
       <p>Во вкладке «Давление» можно вести дневник давления в любые дни: утром, вечером или во время приступа. Замеры во время приступа сами связываются с ним, а в отчёте для врача видно давление в дни с болью и без неё.</p>
 
       <h2 class="section-title">Ваши данные</h2>
-      <p>Записи хранятся только на этом устройстве и никуда не отправляются. Раз в месяц сохраняйте резервную копию в «Истории». На iPhone при удалении иконки с экрана данные стираются, поэтому сначала сохраните копию.</p>
+      <p>Записи о здоровье хранятся только на этом устройстве и никуда не отправляются. Приложение лишь анонимно считает, сколько раз его открывают, без каких-либо личных данных. Раз в месяц сохраняйте резервную копию в «Истории». На iPhone при удалении иконки с экрана данные стираются, поэтому сначала сохраните копию.</p>
 
       <h2 class="section-title">Важно</h2>
       <p>Приложение помогает вести дневник, но не заменяет врача. Список симптомов, при которых нужна срочная помощь, есть во вкладке «Помощь».</p>
@@ -323,15 +331,16 @@
     </div>
   </div>
 
-  <script src="storage.js?v=35"></script>
-  <script src="logger.js?v=35"></script>
-  <script src="help.js?v=35"></script>
-  <script src="history.js?v=35"></script>
-  <script src="report.js?v=35"></script>
-  <script src="message.js?v=35"></script>
-  <script src="info.js?v=35"></script>
-  <script src="bp.js?v=35"></script>
-  <script src="news.js?v=35"></script>
-  <script src="app.js?v=35"></script>
+  <script src="storage.js?v=51"></script>
+  <script src="logger.js?v=51"></script>
+  <script src="help.js?v=51"></script>
+  <script src="history.js?v=51"></script>
+  <script src="report.js?v=51"></script>
+  <script src="message.js?v=51"></script>
+  <script src="info.js?v=51"></script>
+  <script src="bp.js?v=51"></script>
+  <script src="news.js?v=51"></script>
+  <script src="stats.js?v=51"></script>
+  <script src="app.js?v=51"></script>
 </body>
 </html>

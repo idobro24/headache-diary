@@ -21,13 +21,14 @@ const SELF_HELP = [
   'Лечь в тихом тёмном месте'
 ];
 
-const SOUNDS = [
-  { id: 'rain', label: 'Дождь' },
-  { id: 'forest', label: 'Дождь в лесу' },
-  { id: 'fire', label: 'Камин' },
-  { id: 'white', label: 'Белый шум' },
-  { id: 'pink', label: 'Мягкий шум' },
-  { id: 'brown', label: 'Как водопад' }
+// Звуки по группам: [id, подпись]
+const SOUND_GROUPS = [
+  { title: 'Дождь', items: [['rain', 'Дождь'], ['umbrella', 'Под зонтом'], ['car', 'По стеклу в машине'],
+                            ['forest', 'Дождь в лесу'], ['drops', 'Редкие капли']] },
+  { title: 'Природа', items: [['woods', 'Лес за окном'], ['surf', 'Прибой вдалеке']] },
+  { title: 'Уют', items: [['fire', 'Камин'], ['purr', 'Мурчание кота'], ['child', 'Дыхание ребёнка'],
+                          ['dog', 'Сопение собаки']] },
+  { title: 'Шумы', items: [['white', 'Белый шум'], ['pink', 'Мягкий шум'], ['brown', 'Как водопад']] }
 ];
 
 // --- Фразы поддержки ---
@@ -212,6 +213,14 @@ function normalizeRms(data, target) {
   for (let i = 0; i < data.length; i++) data[i] *= k;
 }
 
+function normalizePeak(data, target) {
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]));
+  if (!peak) return;
+  const k = target / peak;
+  for (let i = 0; i < data.length; i++) data[i] *= k;
+}
+
 // Короткий всплеск с затуханием: капля дождя или треск дерева
 function addBurst(data, start, amp, decaySec, cutoff, sr) {
   const decay = decaySec * sr;
@@ -263,39 +272,292 @@ function genRain(data, sr, forest) {
   }
 }
 
+// Треск: короткий всплеск шума в полосе частот (без самых высоких, чтобы не шипело)
+function addCrackle(data, start, amp, decaySec, lowCut, highCut, sr) {
+  const len = Math.floor(decaySec * sr * 6);
+  if (start + len >= data.length) return;
+  const aLo = onePole(lowCut, sr), aHi = onePole(highCut, sr);
+  const burst = new Float32Array(len);
+  let lo = 0, hi = 0, peak = 0;
+  for (let i = 0; i < len; i++) {
+    const w = Math.random() * 2 - 1;
+    hi += aHi * (w - hi);
+    lo += aLo * (w - lo);
+    const v = (hi - lo) * Math.exp(-i / (decaySec * sr));
+    burst[i] = v;
+    peak = Math.max(peak, Math.abs(v));
+  }
+  const k = peak ? amp / peak : 0;
+  for (let i = 0; i < len; i++) data[start + i] += burst[i] * k;
+}
+
 function genFire(data, sr) {
-  // Тихий низкий гул пламени, который слегка «дышит»
+  // Еле слышный тёплый гул пламени на фоне
   const noise = brownSource();
-  const a = onePole(250, sr);
+  const a = onePole(300, sr);
   let lp = 0;
   for (let i = 0; i < data.length; i++) {
     lp += a * (noise() - lp);
     const t = i / sr;
     data[i] = lp * (0.75 + 0.25 * Math.sin(2 * Math.PI * t * 0.23) * Math.sin(2 * Math.PI * t * 0.37 + 1));
   }
-  normalizeRms(data, 0.06);
+  normalizeRms(data, 0.025);
 
-  // Треск: неравномерные щелчки, иногда сериями, изредка громкий «щелчок полена»
-  let pos = 0;
+  // Треск дров: частые щелчки разной силы, серии «потрескиваний» и иногда громкий щелчок полена
+  let pos = Math.floor(sr * 0.05);
   while (pos < data.length) {
-    pos += Math.floor(sr * (0.015 + Math.random() * Math.random() * 0.5));
-    const pop = Math.random() < 0.06;
-    addBurst(data, pos,
-             pop ? 0.5 + Math.random() * 0.3 : 0.08 + Math.random() * 0.25,
-             pop ? 0.006 : 0.001 + Math.random() * 0.0015,
-             pop ? 2500 : 4000 + Math.random() * 5000, sr);
-    if (Math.random() < 0.25) {
+    pos += Math.floor(sr * (0.06 + Math.random() * Math.random() * 0.4));
+    const r = Math.random();
+    if (r < 0.1) {
+      // громкий щелчок полена: ниже и длиннее
+      addCrackle(data, pos, 0.55 + Math.random() * 0.25, 0.008 + Math.random() * 0.01, 150, 1800, sr);
+    } else {
+      addCrackle(data, pos, 0.15 + Math.random() * 0.3, 0.002 + Math.random() * 0.004, 500, 3500 + Math.random() * 1500, sr);
+    }
+    if (Math.random() < 0.22) {
+      // серия мелких потрескиваний
       const n = 2 + Math.floor(Math.random() * 4);
       let p = pos;
       for (let k = 0; k < n; k++) {
-        p += Math.floor(sr * (0.008 + Math.random() * 0.04));
-        addBurst(data, p, 0.05 + Math.random() * 0.15, 0.001, 6000, sr);
+        p += Math.floor(sr * (0.01 + Math.random() * 0.05));
+        addCrackle(data, p, 0.06 + Math.random() * 0.16, 0.0015 + Math.random() * 0.002, 700, 4000, sr);
       }
     }
   }
 }
 
 // Плавно склеиваем конец с началом, чтобы при повторе не было щелчка
+
+// Полосовой шум: белый шум без самых низких и самых высоких частот
+function bandSource(lowCut, highCut, sr) {
+  const aLo = onePole(lowCut, sr), aHi = onePole(highCut, sr);
+  let lo = 0, hi = 0;
+  return () => {
+    const w = Math.random() * 2 - 1;
+    hi += aHi * (w - hi);
+    lo += aLo * (w - lo);
+    return hi - lo;
+  };
+}
+
+// Плавный «холм» от 0 до 1 и обратно на отрезке x от 0 до 1
+function bump(x) {
+  return x <= 0 || x >= 1 ? 0 : Math.sin(Math.PI * x) ** 2;
+}
+
+// Расписание циклов (волн, вдохов), которое ровно укладывается в петлю: тогда повтор незаметен
+function cycleSchedule(total, meanPeriod, spread) {
+  const periods = [];
+  let sum = 0;
+  while (sum < total - meanPeriod / 2) {
+    const p = meanPeriod * (1 + (Math.random() * 2 - 1) * spread);
+    periods.push(p);
+    sum += p;
+  }
+  const k = total / sum;
+  let t = 0;
+  return periods.map(p => {
+    const c = { start: t, length: p * k };
+    t += p * k;
+    return c;
+  });
+}
+
+function cycleAt(schedule, total, time) {
+  const t = time % total;
+  for (let i = 0; i < schedule.length; i++) {
+    const c = schedule[i];
+    if (t < c.start + c.length) return { index: i, x: (t - c.start) / c.length };
+  }
+  return { index: schedule.length - 1, x: 1 };
+}
+
+// Дождь под зонтом: глухие удары капель по ткани и крупные капли с края
+function genUmbrella(data, sr) {
+  const noise = pinkSource();
+  const aL = onePole(2200, sr), aH = onePole(150, sr);
+  let lp = 0, hp = 0;
+  for (let i = 0; i < data.length; i++) {
+    lp += aL * (noise() - lp);
+    hp += aH * (lp - hp);
+    data[i] = lp - hp;
+  }
+  normalizeRms(data, 0.05);
+  const sec = data.length / sr;
+  for (let k = 0; k < sec * 45; k++) {
+    addCrackle(data, Math.floor(Math.random() * data.length), 0.08 + Math.random() * 0.22,
+               0.004 + Math.random() * 0.008, 250, 1200 + Math.random() * 600, sr);
+  }
+  for (let k = 0; k < sec * 0.6; k++) {
+    addCrackle(data, Math.floor(Math.random() * data.length), 0.35 + Math.random() * 0.2,
+               0.015 + Math.random() * 0.015, 120, 700, sr);
+  }
+}
+
+// Дождь по стеклу в машине: приглушённый шум снаружи, капли по стеклу и редкие стекающие струйки
+function genCar(data, sr) {
+  const noise = pinkSource();
+  const aL = onePole(900, sr), aH = onePole(80, sr);
+  const total = data.length / sr;
+  let lp = 0, hp = 0;
+  for (let i = 0; i < data.length; i++) {
+    lp += aL * (noise() - lp);
+    hp += aH * (lp - hp);
+    const t = i / sr;
+    data[i] = (lp - hp) * (0.85 + 0.15 * Math.sin(2 * Math.PI * t * 2 / total));
+  }
+  normalizeRms(data, 0.06);
+  for (let k = 0; k < total * 28; k++) {
+    addCrackle(data, Math.floor(Math.random() * data.length), 0.06 + Math.random() * 0.2,
+               0.002 + Math.random() * 0.004, 600, 2600, sr);
+  }
+  for (let k = 0; k < total * 0.3; k++) {
+    let pos = Math.floor(Math.random() * data.length);
+    const n = 6 + Math.floor(Math.random() * 5);
+    for (let j = 0; j < n; j++) {
+      pos += Math.floor(sr * (0.02 + Math.random() * 0.04));
+      addCrackle(data, pos, 0.05 + Math.random() * 0.05, 0.003, 800, 2200, sr);
+    }
+  }
+}
+
+// Одна капля: мягкий «плюх» с тоном, который чуть поднимается
+function addPlink(data, start, amp, f0, sr) {
+  const len = Math.floor(0.12 * sr);
+  if (start + len >= data.length) return;
+  let phase = 0;
+  for (let i = 0; i < len; i++) {
+    const t = i / sr;
+    const f = f0 * (1 + 0.8 * t / 0.12);
+    phase += 2 * Math.PI * f / sr;
+    const attack = Math.min(1, i / (0.002 * sr));
+    data[start + i] += amp * attack * Math.exp(-t / 0.025) * Math.sin(phase);
+  }
+}
+
+// Редкие капли: почти тишина и отдельные мягкие капли с паузами
+function genDrops(data, sr) {
+  const noise = pinkSource();
+  const a = onePole(700, sr);
+  let lp = 0;
+  for (let i = 0; i < data.length; i++) {
+    lp += a * (noise() - lp);
+    data[i] = lp;
+  }
+  normalizeRms(data, 0.006);
+  let pos = Math.floor(0.3 * sr);
+  while (pos < data.length - 0.2 * sr) {
+    addPlink(data, pos, 0.35 + Math.random() * 0.35, 700 + Math.random() * 700, sr);
+    pos += Math.floor(sr * (0.6 + Math.random() * 1.9));
+  }
+}
+
+// Птица: короткая негромкая фраза из нескольких посвистов
+function addBirdPhrase(data, start, sr) {
+  const n = 2 + Math.floor(Math.random() * 4);
+  const base = 2600 + Math.random() * 1400;
+  const up = Math.random() < 0.5;
+  const amp = 0.05 + Math.random() * 0.05;
+  let pos = Math.floor(start);
+  for (let k = 0; k < n; k++) {
+    const len = Math.floor((0.06 + Math.random() * 0.07) * sr);
+    if (pos + len >= data.length) return;
+    const f0 = base * (1 + (Math.random() - 0.5) * 0.15);
+    const f1 = f0 * (up ? 1.25 : 0.8);
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const x = i / len;
+      phase += 2 * Math.PI * (f0 + (f1 - f0) * x) / sr;
+      data[pos + i] += amp * bump(x) * Math.sin(phase);
+    }
+    pos += len + Math.floor((0.04 + Math.random() * 0.08) * sr);
+  }
+}
+
+// Лес за окном: шелест листвы порывами и редкие тихие птицы
+function genWoods(data, sr) {
+  const leaves = bandSource(500, 3200, sr);
+  const total = data.length / sr;
+  const aF = onePole(6, sr);
+  let flutter = 0;
+  for (let i = 0; i < data.length; i++) {
+    const t = i / sr;
+    flutter += aF * ((Math.random() * 2 - 1) - flutter);
+    const gust = 0.55 + 0.25 * Math.sin(2 * Math.PI * 2 * t / total) + 0.15 * Math.sin(2 * Math.PI * 3 * t / total + 1);
+    data[i] = leaves() * gust * (0.8 + 4 * flutter);
+  }
+  normalizeRms(data, 0.08);
+  let t = 1 + Math.random() * 2;
+  while (t < total - 1.5) {
+    addBirdPhrase(data, t * sr, sr);
+    t += 4 + Math.random() * 6;
+  }
+}
+
+// Прибой вдалеке: волна накатывает и отступает каждые 8–11 секунд
+function genSurf(data, sr) {
+  const total = SOUND_SETTINGS.surf.seconds;
+  const waves = cycleSchedule(total, 9.5, 0.15);
+  const brown = brownSource(), pink = pinkSource();
+  let lp = 0;
+  for (let i = 0; i < data.length; i++) {
+    const { x } = cycleAt(waves, total, i / sr);
+    const env = x < 0.35 ? Math.sin(Math.PI * x / 0.7) ** 2 : Math.cos(Math.PI / 2 * (x - 0.35) / 0.65) ** 2;
+    const a = onePole(350 + 900 * env, sr);
+    lp += a * ((0.6 * brown() + 0.4 * pink()) - lp);
+    data[i] = lp * (0.25 + 0.75 * env);
+  }
+}
+
+// Дыхание: вдох и выдох — мягкий шум воздуха, который плавно нарастает и затихает
+function genBreathing(data, sr, opts) {
+  const total = opts.seconds;
+  const cycles = cycleSchedule(total, opts.period, 0.08);
+  const inhale = bandSource(opts.inLow, opts.inHigh, sr);
+  const exhale = bandSource(opts.outLow, opts.outHigh, sr);
+  const room = pinkSource();
+  const sighs = new Set(cycles.map((c, i) => i).filter(i => opts.sighEvery && i % opts.sighEvery === opts.sighEvery - 1));
+  for (let i = 0; i < data.length; i++) {
+    const t = i / sr;
+    const { index, x } = cycleAt(cycles, total, t);
+    const inEnv = bump(x / opts.inShare);
+    const outX = (x - opts.inShare - 0.04) / opts.outShare;
+    const sigh = sighs.has(index) ? 1.4 : 1;
+    let outEnv = bump(outX) * sigh;
+    // сопение: на выдохе воздух слегка «дрожит»
+    if (opts.snore) outEnv *= 0.65 + 0.35 * Math.sin(2 * Math.PI * opts.snore * t);
+    data[i] = 0.7 * inEnv * inhale() + outEnv * exhale() + 0.004 * room();
+  }
+}
+
+// Мурчание кота: низкое «ррр» примерно 25 раз в секунду, на вдохе чуть выше и тише, на выдохе ниже и громче
+function genPurr(data, sr) {
+  const total = SOUND_SETTINGS.purr.seconds;
+  const cycles = cycleSchedule(total, 2.0, 0.08);
+  const body = bandSource(110, 850, sr);
+  const room = pinkSource();
+  let phase = 0;
+  for (let i = 0; i < data.length; i++) {
+    const t = i / sr;
+    const { x } = cycleAt(cycles, total, t);
+    const inhale = x < 0.44;
+    // короткая пауза между вдохом и выдохом
+    const env = inhale ? bump(x / 0.44) ** 0.5 * 0.75 : bump((x - 0.47) / 0.53) ** 0.5;
+    const rate = inhale ? 27 : 23;
+    phase += 2 * Math.PI * rate / sr;
+    const pulse = Math.pow(0.5 + 0.5 * Math.sin(phase), 3); // отдельные «толчки» мурчания
+    data[i] = env * (0.25 + 0.75 * pulse) * body() + 0.003 * room();
+  }
+}
+
+const SOUND_SETTINGS = {
+  white: { seconds: 12 }, pink: { seconds: 12 }, brown: { seconds: 12 },
+  rain: { seconds: 12 }, forest: { seconds: 12 }, umbrella: { seconds: 12 }, car: { seconds: 16 },
+  drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 12, peak: 1.4 },
+  woods: { seconds: 24, rms: 0.1 }, surf: { seconds: 30 },
+  child: { seconds: 24, rms: 0.06 }, dog: { seconds: 30, rms: 0.07 }, purr: { seconds: 24, rms: 0.09 }
+};
+
 function makeLoop(data, sr) {
   const f = Math.floor(FADE_SECONDS * sr);
   const out = new Float32Array(data.length - f);
@@ -310,14 +572,30 @@ function makeLoop(data, sr) {
 function getSamples(type, sr) {
   const key = type + sr;
   if (soundCache[key]) return soundCache[key];
-  const data = new Float32Array(Math.floor((LOOP_SECONDS + FADE_SECONDS) * sr));
+  const set = SOUND_SETTINGS[type] || { seconds: LOOP_SECONDS };
+  const data = new Float32Array(Math.floor((set.seconds + FADE_SECONDS) * sr));
   if (type === 'white') genNoise(data, whiteSource());
   else if (type === 'pink') genNoise(data, pinkSource());
   else if (type === 'brown') genNoise(data, brownSource());
   else if (type === 'rain') genRain(data, sr, false);
   else if (type === 'forest') genRain(data, sr, true);
   else if (type === 'fire') genFire(data, sr);
-  normalizeRms(data, 0.12); // все звуки примерно одинаковой громкости
+  else if (type === 'umbrella') genUmbrella(data, sr);
+  else if (type === 'car') genCar(data, sr);
+  else if (type === 'drops') genDrops(data, sr);
+  else if (type === 'woods') genWoods(data, sr);
+  else if (type === 'surf') genSurf(data, sr);
+  else if (type === 'purr') genPurr(data, sr);
+  else if (type === 'child') {
+    genBreathing(data, sr, { seconds: set.seconds, period: 2.6, inShare: 0.38, outShare: 0.45,
+                             inLow: 600, inHigh: 3000, outLow: 400, outHigh: 2200 });
+  } else if (type === 'dog') {
+    genBreathing(data, sr, { seconds: set.seconds, period: 3.7, inShare: 0.35, outShare: 0.5,
+                             inLow: 300, inHigh: 1500, outLow: 150, outHigh: 1100, snore: 26, sighEvery: 5 });
+  }
+  // Выравниваем громкость: у камина и капель по пикам (главное — щелчки и капли), у остальных по среднему
+  if (set.peak) normalizePeak(data, set.peak);
+  else normalizeRms(data, set.rms || 0.12);
   for (let i = 0; i < data.length; i++) data[i] = Math.tanh(data[i]); // мягко срезаем пики
   soundCache[key] = makeLoop(data, sr);
   return soundCache[key];
@@ -337,24 +615,34 @@ function playSound(type) {
   audioCtx.resume();
   stopSound(true);
 
-  noiseSource = audioCtx.createBufferSource();
+  const src = audioCtx.createBufferSource();
   const samples = getSamples(type, audioCtx.sampleRate);
   const buffer = audioCtx.createBuffer(1, samples.length, audioCtx.sampleRate);
   buffer.getChannelData(0).set(samples);
-  noiseSource.buffer = buffer;
-  noiseSource.loop = true;
-  noiseSource.connect(gainNode);
+  src.buffer = buffer;
+  src.loop = true;
+  src.connect(gainNode);
+  // если звук выключился сам (по таймеру сна), снимаем выделение с кнопки
+  src.onended = () => {
+    if (noiseSource === src) {
+      noiseSource = null;
+      currentSound = null;
+      renderSounds();
+    }
+  };
+  noiseSource = src;
 
   const now = audioCtx.currentTime;
   gainNode.gain.cancelScheduledValues(now);
   gainNode.gain.setValueAtTime(0, now);
   gainNode.gain.linearRampToValueAtTime(Number($('volume').value), now + 1.5); // плавное начало
-  noiseSource.start();
+  src.start();
   currentSound = type;
+  scheduleSleepFade();
   renderSounds();
 }
 
-function stopSound(immediate) {
+function stopSound(immediate, fadeSeconds = 0.6) {
   if (!noiseSource) return;
   const src = noiseSource;
   noiseSource = null;
@@ -365,26 +653,102 @@ function stopSound(immediate) {
     const now = audioCtx.currentTime;
     gainNode.gain.cancelScheduledValues(now);
     gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-    gainNode.gain.linearRampToValueAtTime(0, now + 0.6); // плавное затухание
-    src.stop(now + 0.7);
+    gainNode.gain.linearRampToValueAtTime(0, now + fadeSeconds); // плавное затухание
+    src.stop(now + fadeSeconds + 0.1);
   }
   renderSounds();
 }
 
 function renderSounds() {
   const box = $('sounds');
+  box.className = 'sound-groups';
   box.innerHTML = '';
-  SOUNDS.forEach(s => {
-    const chip = document.createElement('button');
-    chip.className = 'chip';
-    chip.textContent = s.label;
-    chip.classList.toggle('selected', currentSound === s.id);
-    chip.addEventListener('click', () => {
-      if (currentSound === s.id) stopSound(false); else playSound(s.id);
+  SOUND_GROUPS.forEach(group => {
+    const title = document.createElement('p');
+    title.className = 'sound-group-title';
+    title.textContent = group.title;
+    const row = document.createElement('div');
+    row.className = 'chips';
+    group.items.forEach(([id, label]) => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.textContent = label;
+      chip.classList.toggle('selected', currentSound === id);
+      chip.addEventListener('click', () => {
+        if (currentSound === id) stopSound(false); else playSound(id);
+      });
+      row.appendChild(chip);
     });
-    box.appendChild(chip);
+    box.append(title, row);
   });
 }
+
+// --- Таймер сна: звук плавно затихает и выключается сам ---
+
+const SLEEP_OPTIONS = [[0, 'Выкл'], [15, '15 мин'], [30, '30 мин'], [60, '60 мин']];
+const SLEEP_FADE_SECONDS = 20;
+let sleepMinutes = 0;
+let sleepEnd = 0;
+let sleepTimer = null;
+
+// Затухание планируем прямо в звуковом движке: так оно сработает точно, даже если экран погас
+function scheduleSleepFade() {
+  if (!sleepEnd || !noiseSource || !audioCtx) return;
+  const remain = (sleepEnd - Date.now()) / 1000;
+  if (remain <= 0) return;
+  const now = audioCtx.currentTime;
+  const volume = Number($('volume').value);
+  const fadeStart = Math.max(0, remain - SLEEP_FADE_SECONDS);
+  gainNode.gain.setValueAtTime(volume, now + Math.max(fadeStart, 1.5));
+  gainNode.gain.linearRampToValueAtTime(0, now + remain);
+  try { noiseSource.stop(now + remain + 0.1); } catch (e) {}
+}
+
+function setSleepTimer(minutes) {
+  clearTimeout(sleepTimer);
+  sleepMinutes = minutes;
+  sleepEnd = minutes ? Date.now() + minutes * 60000 : 0;
+  if (noiseSource && audioCtx) {
+    // перепланируем громкость: сначала обычная, затем затухание к концу таймера
+    const now = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    gainNode.gain.linearRampToValueAtTime(Number($('volume').value), now + 0.3);
+    if (!minutes) {
+      // таймер выключили: звук должен играть дальше, поэтому перезапускаем его без остановки
+      const type = currentSound;
+      stopSound(true);
+      playSound(type);
+    } else {
+      scheduleSleepFade();
+    }
+  }
+  if (minutes) sleepTimer = setTimeout(() => setSleepTimer(0), minutes * 60000 + 500);
+  renderSleep();
+}
+
+function renderSleep() {
+  const box = $('sleep-chips');
+  box.innerHTML = '';
+  SLEEP_OPTIONS.forEach(([min, label]) => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = label;
+    chip.classList.toggle('selected', sleepMinutes === min);
+    chip.addEventListener('click', () => setSleepTimer(min));
+    box.appendChild(chip);
+  });
+  const status = $('sleep-status');
+  if (sleepEnd) {
+    const left = Math.max(1, Math.ceil((sleepEnd - Date.now()) / 60000));
+    status.textContent = 'Звук плавно выключится через ' + left + ' мин';
+    status.hidden = false;
+  } else {
+    status.hidden = true;
+  }
+}
+
+setInterval(() => { if (sleepEnd) renderSleep(); }, 30000);
 
 // Закрашенная часть ползунка громкости
 function paintVolume() {
@@ -398,6 +762,7 @@ $('volume').addEventListener('input', e => {
   const now = audioCtx.currentTime;
   gainNode.gain.cancelScheduledValues(now);
   gainNode.gain.setTargetAtTime(Number(e.target.value), now, 0.1);
+  scheduleSleepFade();
 });
 
 // --- Чек-лист самопомощи (сбрасывается при перезапуске) ---
@@ -464,4 +829,5 @@ function helpHidden() {
 }
 
 renderSounds();
+renderSleep();
 renderChecklist();

@@ -544,30 +544,40 @@ function genBreathing(data, sr, opts) {
       const depth = opts.snoreDepth || 0.35;
       outEnv *= 1 - depth + depth * (0.5 + 0.5 * Math.sin(2 * Math.PI * opts.snore * t)) ** 2;
     }
-    data[i] = 0.7 * inEnv * inhale() + outEnv * exhale() + 0.004 * room();
+    data[i] = (opts.inGain || 0.7) * inEnv * inhale() + outEnv * exhale() + 0.004 * room();
   }
 }
 
-// Мурчание кота: приглушённое «ррр», как будто слышишь его, прижавшись к тёплому боку.
-// Низкий шум, сглаженный дважды (без хрипящих высоких частот), с мягкими толчками около 19–21 раза в секунду
+// Мурчание кота: на вдохе тихое бархатное «ррр», на выдохе — такое же мягкое приглушённое «ррр»,
+// как в сопении собаки, затем спокойная пауза перед следующим вдохом
 function genPurr(data, sr) {
   const total = SOUND_SETTINGS.purr.seconds;
   const cycles = cycleSchedule(total, 4.4, 0.1);
+  // вдох: низкий шум, сглаженный «через шёрстку»
   const body = bandSource(60, 420, sr);
   const aSoft = onePole(380, sr);
   let soft = 0;
+  // выдох: та же цепочка, что у собаки (полоса 120–700 Гц и дополнительное приглушение)
+  const outRaw = bandSource(120, 700, sr);
+  const aMuffle = onePole(450, sr);
+  let muffled = 0;
   let phase = 0;
   for (let i = 0; i < data.length; i++) {
     const t = i / sr;
     const { x } = cycleAt(cycles, total, t);
-    // вдох, короткая пауза, выдох и затем спокойная пауза перед следующим вдохом
-    const inhale = x < 0.3;
-    const env = inhale ? bump(x / 0.3) ** 0.5 * 0.8 : bump((x - 0.33) / 0.37) ** 0.5;
-    const rate = inhale ? 21 : 19;
-    phase += 2 * Math.PI * rate / sr;
-    const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2; // мягкие, а не резкие толчки
-    soft += aSoft * (body() - soft);                    // ещё раз сглаживаем: «через шёрстку»
-    data[i] = env * (0.45 + 0.55 * pulse) * soft;
+    soft += aSoft * (body() - soft);
+    muffled += aMuffle * (outRaw() - muffled);
+    if (x < 0.3) {
+      // вдох
+      phase += 2 * Math.PI * 21 / sr;
+      const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2;
+      data[i] = bump(x / 0.3) ** 0.5 * 0.55 * (0.45 + 0.55 * pulse) * soft;
+    } else {
+      // выдох с мягкой вибрацией, как у собаки, и пауза после него
+      phase += 2 * Math.PI * 24 / sr;
+      const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2;
+      data[i] = bump((x - 0.33) / 0.37) ** 0.5 * (0.7 + 0.3 * pulse) * muffled * 0.92;
+    }
   }
 }
 
@@ -576,7 +586,7 @@ const SOUND_SETTINGS = {
   rain: { seconds: 12 }, forest: { seconds: 12 }, umbrella: { seconds: 12 }, car: { seconds: 16 },
   drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 12, peak: 1.4 },
   woods: { seconds: 24, rms: 0.028 }, surf: { seconds: 30 },
-  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.045 }, purr: { seconds: 35, rms: 0.055 }
+  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.041 }, purr: { seconds: 35, rms: 0.051 }
 };
 
 function makeLoop(data, sr) {
@@ -613,7 +623,7 @@ function getSamples(type, sr) {
   } else if (type === 'dog') {
     genBreathing(data, sr, { seconds: set.seconds, period: 3.7, inShare: 0.35, outShare: 0.5,
                              inLow: 300, inHigh: 1300, outLow: 120, outHigh: 700, muffle: 450,
-                             snore: 24, snoreDepth: 0.3, sighEvery: 5 });
+                             snore: 24, snoreDepth: 0.3, sighEvery: 5, inGain: 0.45 });
   }
   // Выравниваем громкость: у камина и капель по пикам (главное — щелчки и капли), у остальных по среднему
   if (set.peak) normalizePeak(data, set.peak);

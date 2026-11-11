@@ -26,13 +26,14 @@ function timesWord(n) {
   return 'раз';
 }
 
-function showCommunity(count) {
+function showCommunity(count, allTime) {
   const el = $('community');
   if (!count || count < COMMUNITY_MIN) {
     el.hidden = true;
     return;
   }
-  el.textContent = 'Каждый день «Тише» открывают люди, которым тоже бывает непросто: за месяц уже ' +
+  el.textContent = 'Каждый день «Тише» открывают люди, которым тоже бывает непросто: ' +
+    (allTime ? 'уже ' : 'за месяц уже ') +
     count.toLocaleString('ru-RU') + ' ' + timesWord(count) + '. Вы не одни';
   el.hidden = false;
   // Строка тихо показывается при открытии и через несколько секунд плавно растворяется.
@@ -42,24 +43,34 @@ function showCommunity(count) {
   communityFadeTimer = setTimeout(() => el.classList.add('faded'), COMMUNITY_SHOW_MS);
 }
 
-// Число открытий за последние 30 дней. Обновляем раз в день, без интернета показываем последнее известное
-function loadCommunity() {
-  let cached = null;
-  try { cached = JSON.parse(localStorage.getItem(COMMUNITY_KEY)); } catch (e) {}
-  if (cached) showCommunity(cached.count);
-  if (cached && Date.now() - cached.time < DAY_MS) return;
-
-  const start = new Date(Date.now() - 30 * DAY_MS).toISOString().slice(0, 10);
-  fetch(GC_URL + '/counter/TOTAL.json?start=' + start)
+// Число открытий: сначала за последние 30 дней, а если такой запрос не сработает — за всё время.
+// Без интернета показываем последнее известное
+function fetchCount(url) {
+  return fetch(url)
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
-      if (!data || data.count == null) return;
+      if (!data || data.count == null) return null;
       const count = parseInt(String(data.count).replace(/\D/g, ''), 10);
-      if (isNaN(count)) return;
-      try { localStorage.setItem(COMMUNITY_KEY, JSON.stringify({ count, time: Date.now() })); } catch (e) {}
-      showCommunity(count);
+      return isNaN(count) ? null : count;
     })
-    .catch(() => {});
+    .catch(() => null);
+}
+
+async function loadCommunity() {
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(COMMUNITY_KEY)); } catch (e) {}
+  if (cached) showCommunity(cached.count, cached.allTime);
+
+  const start = new Date(Date.now() - 30 * DAY_MS).toISOString().slice(0, 10);
+  let count = await fetchCount(GC_URL + '/counter/TOTAL.json?start=' + start);
+  let allTime = false;
+  if (count === null) {
+    count = await fetchCount(GC_URL + '/counter/TOTAL.json');
+    allTime = true;
+  }
+  if (count === null) return;
+  try { localStorage.setItem(COMMUNITY_KEY, JSON.stringify({ count, allTime, time: Date.now() })); } catch (e) {}
+  showCommunity(count, allTime);
 }
 
 // Для проверки на тестовом стенде: адрес с #community-demo показывает строку с примером числа.

@@ -6,6 +6,8 @@ const IS_PRODUCTION = location.hostname.endsWith('github.io');   // тестов
 const IS_INSTALLED = window.navigator.standalone === true ||
   window.matchMedia('(display-mode: standalone)').matches;
 const COMMUNITY_KEY = 'hd.community';
+const COMMUNITY_SHOW_MS = 8000; // сколько строка видна перед тем, как раствориться
+let communityFadeTimer = null;
 const COMMUNITY_MIN = 10; // маленькие числа не показываем: «3 раза» звучит скорее одиноко
 
 // Счётчик открытий. Отдельно видно, открыли приложение с иконки или просто в браузере
@@ -33,6 +35,11 @@ function showCommunity(count) {
   el.textContent = 'Каждый день «Тише» открывают люди, которым тоже бывает непросто: за месяц уже ' +
     count.toLocaleString('ru-RU') + ' ' + timesWord(count) + '. Вы не одни';
   el.hidden = false;
+  // Строка тихо показывается при открытии и через несколько секунд плавно растворяется.
+  // Место под ней остаётся, чтобы ничего на экране не «прыгало»
+  el.classList.remove('faded');
+  clearTimeout(communityFadeTimer);
+  communityFadeTimer = setTimeout(() => el.classList.add('faded'), COMMUNITY_SHOW_MS);
 }
 
 // Число открытий за последние 30 дней. Обновляем раз в день, без интернета показываем последнее известное

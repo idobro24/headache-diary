@@ -633,7 +633,53 @@ function getSamples(type, sr) {
   return soundCache[key];
 }
 
-function playSound(type) {
+// Звуки из файлов-записей (остальные синтезируются). Если файл не загрузится, играет синтез
+const RECORDED_SOUNDS = { fire: 'fire.mp3' };
+const recordedCache = {};
+
+function decodeAudio(arrayBuffer) {
+  // старые версии Safari умеют только вариант с колбэками
+  return new Promise((resolve, reject) => {
+    const p = audioCtx.decodeAudioData(arrayBuffer, resolve, reject);
+    if (p && p.then) p.then(resolve, reject);
+  });
+}
+
+// Готовим запись к бесконечному повтору: убираем тишину, которую mp3 добавляет в начало и конец,
+// и плавно склеиваем конец с началом
+async function loadRecorded(type) {
+  if (recordedCache[type]) return recordedCache[type];
+  const response = await fetch(RECORDED_SOUNDS[type]);
+  if (!response.ok) throw new Error('no file');
+  const decoded = await decodeAudio(await response.arrayBuffer());
+  const raw = decoded.getChannelData(0);
+  let first = 0, last = raw.length - 1;
+  while (first < raw.length && Math.abs(raw[first]) < 1e-4) first++;
+  while (last > first && Math.abs(raw[last]) < 1e-4) last--;
+  const looped = makeLoop(raw.slice(first, last + 1), decoded.sampleRate);
+  const buffer = audioCtx.createBuffer(1, looped.length, decoded.sampleRate);
+  buffer.getChannelData(0).set(looped);
+  recordedCache[type] = buffer;
+  return buffer;
+}
+
+async function getBuffer(type) {
+  if (RECORDED_SOUNDS[type]) {
+    try {
+      return await loadRecorded(type);
+    } catch (e) {
+      // без файла — синтезированный вариант
+    }
+  }
+  const samples = getSamples(type, audioCtx.sampleRate);
+  const buffer = audioCtx.createBuffer(1, samples.length, audioCtx.sampleRate);
+  buffer.getChannelData(0).set(samples);
+  return buffer;
+}
+
+let playToken = 0; // чтобы быстрые переключения звуков не накладывались
+
+async function playSound(type) {
   if (!audioCtx) {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) {
@@ -646,11 +692,14 @@ function playSound(type) {
   }
   audioCtx.resume();
   stopSound(true);
+  const token = ++playToken;
+  currentSound = type;   // кнопка подсвечивается сразу, даже пока запись загружается
+  renderSounds();
+
+  const buffer = await getBuffer(type);
+  if (token !== playToken || currentSound !== type) return; // пока грузилось, выбрали другое
 
   const src = audioCtx.createBufferSource();
-  const samples = getSamples(type, audioCtx.sampleRate);
-  const buffer = audioCtx.createBuffer(1, samples.length, audioCtx.sampleRate);
-  buffer.getChannelData(0).set(samples);
   src.buffer = buffer;
   src.loop = true;
   src.connect(gainNode);
@@ -669,13 +718,20 @@ function playSound(type) {
   gainNode.gain.setValueAtTime(0, now);
   gainNode.gain.linearRampToValueAtTime(Number($('volume').value), now + 1.5); // плавное начало
   src.start();
-  currentSound = type;
   scheduleSleepFade();
   renderSounds();
 }
 
 function stopSound(immediate, fadeSeconds = 0.6) {
-  if (!noiseSource) return;
+  if (!noiseSource) {
+    // звук ещё загружался: просто отменяем его
+    if (currentSound) {
+      currentSound = null;
+      playToken++;
+      renderSounds();
+    }
+    return;
+  }
   const src = noiseSource;
   noiseSource = null;
   currentSound = null;

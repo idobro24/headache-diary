@@ -537,10 +537,10 @@ function genBreathing(data, sr, opts) {
 }
 
 // Мурчание кота: приглушённое «ррр», как будто слышишь его, прижавшись к тёплому боку.
-// Низкий шум, сглаженный дважды (без хрипящих высоких частот), с мягкими толчками около 22–24 раз в секунду
+// Низкий шум, сглаженный дважды (без хрипящих высоких частот), с мягкими толчками около 19–21 раза в секунду
 function genPurr(data, sr) {
   const total = SOUND_SETTINGS.purr.seconds;
-  const cycles = cycleSchedule(total, 2.6, 0.08);
+  const cycles = cycleSchedule(total, 3.2, 0.08);
   const body = bandSource(60, 420, sr);
   const aSoft = onePole(380, sr);
   let soft = 0;
@@ -551,7 +551,7 @@ function genPurr(data, sr) {
     const inhale = x < 0.44;
     // короткая пауза между вдохом и выдохом
     const env = inhale ? bump(x / 0.44) ** 0.5 * 0.8 : bump((x - 0.47) / 0.53) ** 0.5;
-    const rate = inhale ? 24 : 22;
+    const rate = inhale ? 21 : 19;
     phase += 2 * Math.PI * rate / sr;
     const pulse = (0.5 + 0.5 * Math.sin(phase)) ** 2; // мягкие, а не резкие толчки
     soft += aSoft * (body() - soft);                    // ещё раз сглаживаем: «через шёрстку»
@@ -564,7 +564,7 @@ const SOUND_SETTINGS = {
   rain: { seconds: 12 }, forest: { seconds: 12 }, umbrella: { seconds: 12 }, car: { seconds: 16 },
   drops: { seconds: 20, peak: 0.8 }, fire: { seconds: 12, peak: 1.4 },
   woods: { seconds: 24, rms: 0.028 }, surf: { seconds: 30 },
-  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.045 }, purr: { seconds: 26, rms: 0.055 }
+  child: { seconds: 29, rms: 0.05 }, dog: { seconds: 30, rms: 0.045 }, purr: { seconds: 32, rms: 0.055 }
 };
 
 function makeLoop(data, sr) {
@@ -693,35 +693,46 @@ function renderSounds() {
 }
 
 // --- Сворачивание приложения ---
-// iOS останавливает звук в фоне резко, со щелчком. Поэтому сами плавно гасим звук и ставим на паузу,
-// а когда пользователь возвращается, продолжаем тот же звук
+// Когда iOS «замораживает» свёрнутое приложение, звук обрывается, а последний кусочек звука может
+// застрять и гудеть «нотой». Поэтому при первом же признаке ухода в фон звук очень быстро
+// гасится до тишины и останавливается: тогда застревать нечему. При возвращении звук продолжается.
 let resumeSound = null;
 
-document.addEventListener('visibilitychange', () => {
-  if (!audioCtx) return;
-  if (document.hidden) {
-    if (!noiseSource) return;
-    resumeSound = currentSound;
-    const now = audioCtx.currentTime;
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-    gainNode.gain.linearRampToValueAtTime(0, now + 0.08);
-    setTimeout(() => { if (document.hidden) audioCtx.suspend(); }, 120);
-    return;
-  }
-  if (!resumeSound) return;
+function pauseForBackground() {
+  if (!audioCtx || !noiseSource || resumeSound) return;
+  resumeSound = currentSound;
+  const now = audioCtx.currentTime;
+  gainNode.gain.cancelScheduledValues(now);
+  gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+  gainNode.gain.setTargetAtTime(0, now, 0.004); // примерно 15 мс до тишины, без щелчка
+  const src = noiseSource;
+  noiseSource = null;
+  try { src.stop(now + 0.03); } catch (e) {}
+  setTimeout(() => { if (resumeSound && audioCtx.state === 'running') audioCtx.suspend(); }, 60);
+}
+
+function resumeFromBackground() {
+  if (!resumeSound || document.hidden) return;
   const type = resumeSound;
   resumeSound = null;
+  const giveUp = () => { currentSound = null; renderSounds(); };
   // таймер сна закончился, пока приложение было свёрнуто
   if (sleepEnd && Date.now() >= sleepEnd) {
-    stopSound(true);
+    giveUp();
     setSleepTimer(0);
     return;
   }
-  audioCtx.resume().then(() => playSound(type)).catch(() => stopSound(true));
+  audioCtx.resume().then(() => playSound(type)).catch(giveUp);
   // если iOS не разрешила продолжить без касания, честно показываем, что звук выключен
-  setTimeout(() => { if (audioCtx.state !== 'running') stopSound(true); }, 600);
+  setTimeout(() => { if (audioCtx.state !== 'running') giveUp(); }, 600);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseForBackground(); else resumeFromBackground();
 });
+window.addEventListener('pagehide', pauseForBackground);
+window.addEventListener('blur', pauseForBackground);   // на iPhone срабатывает раньше, чем приложение скрывается
+window.addEventListener('focus', resumeFromBackground);
 
 // --- Таймер сна: звук плавно затихает и выключается сам ---
 

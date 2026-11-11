@@ -61,10 +61,13 @@ async function loadCommunity() {
   try { cached = JSON.parse(localStorage.getItem(COMMUNITY_KEY)); } catch (e) {}
   if (cached) showCommunity(cached.count, cached.allTime);
 
+  // Период указываем целиком, с началом и концом: с одной датой начала GoatCounter отвечает нулём
   const start = new Date(Date.now() - 30 * DAY_MS).toISOString().slice(0, 10);
-  let count = await fetchCount(GC_URL + '/counter/TOTAL.json?start=' + start);
+  const end = new Date(Date.now() + DAY_MS).toISOString().slice(0, 10);
+  let count = await fetchCount(GC_URL + '/counter/TOTAL.json?start=' + start + '&end=' + end);
   let allTime = false;
-  if (count === null) {
+  // Ошибка или ноль: спрашиваем общее число за всё время
+  if (!count) {
     count = await fetchCount(GC_URL + '/counter/TOTAL.json');
     allTime = true;
   }

@@ -490,6 +490,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 }
 .stat-block h3 { margin-bottom: 6px; font-size: 15px; font-weight: 500; color: var(--text-muted); }
 .note { margin-top: 8px; font-size: 14px; color: #CDB98A; }
+.stat-muted { margin-top: 8px; font-size: 14px; color: var(--text-muted); }
 
 /* ===== Данные и отчёт для врача ===== */
 .data-actions .ghost-button { margin-top: 10px; text-align: center; }

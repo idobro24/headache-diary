@@ -315,16 +315,38 @@ function renderStats(all, monthEpisodes) {
     ));
   }
 
-  // Как помогают лекарства (за всё время, чтобы данных было больше)
+  // Что помогает (за всё время, чтобы данных было больше): от самого помогающего к менее
   const eff = {};
   all.forEach(ep => ep.meds.forEach(m => {
     if (!m.helped) return;
     eff[m.name] = eff[m.name] || { yes: 0, partly: 0, no: 0 };
     eff[m.name][m.helped]++;
   }));
-  const effLines = Object.entries(eff).map(([name, c]) =>
-    name + ': помогло ' + c.yes + ', частично ' + c.partly + ', не помогло ' + c.no);
-  if (effLines.length) box.appendChild(statBlock('Как помогают лекарства', effLines));
+  const entries = Object.entries(eff).map(([name, c]) => ({ name, ...c, total: c.yes + c.partly + c.no }));
+  if (entries.length) {
+    const helped = entries
+      .filter(e => e.yes + e.partly > 0)
+      .sort((a, b) => (b.yes - a.yes) || (b.partly - a.partly) || (a.no - b.no) || (b.total - a.total));
+    const notHelped = entries.filter(e => e.yes + e.partly === 0).map(e => e.name);
+
+    const lines = helped.map(e => {
+      const parts = [];
+      if (e.yes) parts.push('помогло ' + e.yes + ' ' + razWord(e.yes));
+      if (e.partly) parts.push((e.yes ? 'частично ' : 'частично помогло ') + e.partly);
+      return e.name + ' — ' + parts.join(', ') + ' из ' + e.total;
+    });
+    const block = statBlock(
+      helped.length ? 'Кажется, вам больше всего помогает:' : 'Как помогают лекарства',
+      helped.length ? lines : ['Пока ни одно средство заметно не помогло']
+    );
+    if (notHelped.length) {
+      const muted = document.createElement('p');
+      muted.className = 'stat-muted';
+      muted.textContent = 'Пока не помогало: ' + notHelped.join(', ');
+      block.appendChild(muted);
+    }
+    box.appendChild(block);
+  }
 }
 
 // Для каждого дня берём самое сильное влияние: отменённые дела важнее «через силу»
@@ -343,6 +365,12 @@ function impactByDay(episodes, dayFilter) {
     missed: values.filter(v => v === 'missed').length,
     reduced: values.filter(v => v === 'reduced').length
   };
+}
+
+function razWord(n) {
+  const a = n % 10, b = n % 100;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'раза';
+  return 'раз';
 }
 
 // --- Сборка экрана ---
